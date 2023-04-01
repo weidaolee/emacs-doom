@@ -1,0 +1,18 @@
+* Global CC Style
+#+begin_src elisp
+(cl-dolist (style c-style-alist)
+  (message (car style)))
+#+end_src
+
+#+begin_src elisp
+(c-add-style "default-cc-style"
+             '("k&r"
+               (indent-tabs-mode . nil)
+               (c-basic-offset . 4)
+               (c-offsets-alist
+                (innamespace . -)
+                (access-label . -))))
+
+(add-to-list 'c-default-style '(c++-mode . "default-cc-style"))
+(add-to-list 'c-default-style '(c-mode . "default-cc-style"))
+#+end_src
