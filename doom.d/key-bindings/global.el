@@ -1,11 +1,11 @@
 ;;; ../emacs/doomemacs/doom.d/key-bindings/global.el -*- lexical-binding: t; -*-
 
-;; h
-(map!
- :when (modulep! :editor evil +everywhere)
- :map general-override-mode-map
- :nvm "h" help-map
- )
+;; ;; h
+;; (map!
+;;  :when (modulep! :editor evil +everywhere)
+;;  :map general-override-mode-map
+;;  :nvm "h" help-map
+;;  )
 
 ;; G
 (map!

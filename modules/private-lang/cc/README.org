@@ -16,3 +16,13 @@
 (add-to-list 'c-default-style '(c++-mode . "default-cc-style"))
 (add-to-list 'c-default-style '(c-mode . "default-cc-style"))
 #+end_src
+* Include Headers as Default
+#+begin_src elisp
+((c++-mode . ((lsp-clients-clangd-args . ("-extra-arg=-include" "-extra-arg=./include/my_global.h")))))
+#+end_src
+* Auto Fromat on Save
+Add the following code to ~.dir-lcoals.el~:
+#+begin_src elisp
+((c++-mode . ((eval . (add-hook 'before-save-hook #'lsp-format-buffer nil t)))))
+((c-mode . ((eval . (add-hook 'before-save-hook #'lsp-format-buffer nil t)))))
+#+end_src
