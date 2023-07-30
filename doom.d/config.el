@@ -80,11 +80,11 @@
       '(("http" . "127.0.0.1:7890")
         ("https" . "127.0.0.1:7890")))
 
-(load! "key-bindings/roam")
-(load! "key-bindings/global")
+(load! "key-bindings/roam.el")
 (load! "key-bindings/evil.el")
-(load! "key-bindings/find-file")
+(load! "key-bindings/global.el")
 (load! "key-bindings/i-search.el")
+(load! "key-bindings/find-file.el")
 
 (setq org-support-shift-select t)
 ;; (setq! company-tooltip-maximum-width company-box-tooltip-maximum-width)
