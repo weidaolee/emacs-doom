@@ -50,6 +50,8 @@
        "P" #'evil-ex-search-previous))
 
 ;; ranger
-(map! (:map ranger-mode-map
-       "C-n" #'dired-next-line
-       "C-p" #'dired-previous-line))
+(map!
+ :after (dired ranger)
+ :map ranger-mode-map
+ "C-n" #'ranger-next-file
+ "C-p" #'ranger-prev-file)

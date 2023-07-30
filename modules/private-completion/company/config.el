@@ -3,8 +3,8 @@
 (after! company
   (setq!
    company-tooltip-limit 16
-   company-tooltip-maximum-width 32
-   company-box-tooltip-maximum-width 64))
+   company-tooltip-maximum-width 64
+   company-box-tooltip-maximum-width 32))
 
 (map!
  :after company

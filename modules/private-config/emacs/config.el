@@ -3,6 +3,7 @@
 ;; frame
 (toggle-frame-maximized)
 (toggle-frame-fullscreen)
+(which-function-mode t)
 
 ;; display time, battery
 (display-time-mode t)
