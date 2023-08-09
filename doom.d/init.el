@@ -88,7 +88,8 @@
        vterm               ; the best terminal emulation in Emacs
 
        :checkers
-       syntax              ; tasing you for every semicolon you forget
+       (syntax             ; tasing you for every semicolon you forget
+        +childframe)
        ;;(spell +flyspell) ; tasing you for misspelling mispelling
        ;;grammar           ; tasing grammar mistake every you make
 
@@ -207,7 +208,9 @@
        ;;swift             ; who asked for emoji variables?
        ;;terra             ; Earth and Moon in alignment for performance.
        ;;web               ; the tubes
-       yaml                ; JSON, but readable
+       (yaml               ; JSON, but readable
+        +lsp
+        +tree-sitter)
        ;;zig               ; C, but simpler
 
        :email
