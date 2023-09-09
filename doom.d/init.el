@@ -97,8 +97,8 @@
        ;;ansible
        ;;biblio            ; Writes a PhD for you (citation needed)
        (debugger +lsp)     ; FIXME stepping through code, to help you add bugs
-       ;; direnv
-       ;;docker
+       direnv
+       (docker +lsp)
        editorconfig        ; let someone else argue about tabs vs spaces
        ;;ein               ; tame Jupyter notebooks with emacs
        (eval +overlay)     ; run code, run (also, repls)
@@ -208,9 +208,7 @@
        ;;swift             ; who asked for emoji variables?
        ;;terra             ; Earth and Moon in alignment for performance.
        ;;web               ; the tubes
-       (yaml               ; JSON, but readable
-        +lsp
-        +tree-sitter)
+       yaml                ; JSON, but readable
        ;;zig               ; C, but simpler
 
        :email
@@ -254,11 +252,13 @@
        :private-lang
        ;; org
        cc
-       python
        go
+       python
 
        :private-tools
+       conf
        gpt
+       log
 
        :private-term
        vterm
