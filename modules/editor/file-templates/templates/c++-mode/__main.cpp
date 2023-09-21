@@ -1,10 +1,10 @@
 # -*- mode: snippet -*-
 # group: file templates
-# contributor: Henrik Lissner
+# contributor: Weidao Lee
 # --
 #include <iostream>
 
-auto main(int argc, char *argv[]) -> int {
+int main(int argc, char *argv[]) {
     $0
 
     return 0;
