@@ -83,6 +83,12 @@
   )
 
  (:after ranger
+  :map ranger-mode-map
+  "d" #'dired-flag-file-deletion
+  "t" #'dired-flag-file-to-trash-can
+  "x" #'dired-do-flagged-delete-or-trash)
+
+ (:after ranger
   :map ranger-normal-mode-map
   "d" #'dired-flag-file-deletion
   "t" #'dired-flag-file-to-trash-can

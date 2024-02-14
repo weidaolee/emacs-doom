@@ -46,6 +46,8 @@
       (:when (modulep! :editor evil +everywhere)
        :map evil-motion-state-map
        "C-e" nil
+       "n" #'evil-ex-search-next
+       "p" #'evil-ex-search-previous
        "N" #'evil-ex-search-next
        "P" #'evil-ex-search-previous))
 
