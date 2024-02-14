@@ -1,6 +1,6 @@
 ;;; private-emacs/dired/config.el -*- lexical-binding: t; -*-
 
-(after! dired
+(after! ranger
   (load! "+map/ranger.el"))
 
 (after! ranger

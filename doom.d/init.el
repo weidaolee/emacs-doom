@@ -75,7 +75,8 @@
        :emacs
        (dired              ; making dired pretty [functional]
         +icons
-        +ranger)
+        +ranger
+        )
        electric            ; smarter, keyword-based electric-indent
        ;;ibuffer           ; interactive buffer management
        (undo +tree)        ; persistent, smarter undo for your inevitable mistakes
@@ -217,7 +218,7 @@
        ;;(wanderlust +gmail)
 
        :app
-       ;;calendar
+       calendar
        ;;emms
        ;;everywhere        ; *leave* Emacs!? You must be joking
        ;;irc               ; how neckbeards socialize
@@ -244,21 +245,21 @@
        evil
        hungry-delete
        drag-stuff
-       ;; format
 
        :private-emacs
        dired
 
        :private-lang
-       ;; org
+       org
        cc
        go
-       python
+       sh
+       protobuf
 
        :private-tools
        conf
        ;; gpt
-       log
+       treemacs-icons
 
        :private-term
        vterm

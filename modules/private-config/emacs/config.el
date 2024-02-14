@@ -15,10 +15,3 @@
 ;; allow expert features
 (put 'narrow-to-region 'disabled nil)
 (put 'set-goal-column 'disabled nil)
-
-;; disable <C-m>
-(define-key input-decode-map [?\C-m] [C-m])
-(global-set-key (kbd "<C-m>") #'c-m)
-
-;; disable M-<tab>
-(map! "M-<tab>" #'doom/escape)
