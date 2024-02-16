@@ -12,5 +12,6 @@
 (doom-require 'doom-ui)
 (doom-require 'doom-projects)
 (doom-require 'doom-editor)
+(doom-require 'ol)
 
 ;;; init.el ends here
