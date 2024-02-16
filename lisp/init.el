@@ -12,6 +12,7 @@
 (doom-require 'doom-ui)
 (doom-require 'doom-projects)
 (doom-require 'doom-editor)
+(doom-require 'ol)
 
 ;; Ensure .dir-locals.el in $EMACSDIR and $DOOMDIR are always respected
 (add-to-list 'safe-local-variable-directories doom-emacs-dir)

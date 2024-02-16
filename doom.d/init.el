@@ -115,7 +115,7 @@
        ;;taskrunner        ; taskrunner for all your projects
        terraform         ; infrastructure as code
        ;;tmux              ; an API for interacting with tmux
-       tree-sitter         ; syntax and parsing, sitting in a tree...
+       ;;tree-sitter         ; syntax and parsing, sitting in a tree...
        ;;upload            ; map local to remote projects via ssh/ftp
 
        :os
@@ -127,7 +127,7 @@
        ;;beancount         ; mind the GAAP
        (cc                 ; C > C++ == 1
         +lsp
-        +tree-sitter
+        ;;+tree-sitter
         )
        ;;clojure           ; java with a lisp
        ;;common-lisp       ; if you've seen one lisp, you've seen them all
@@ -150,7 +150,8 @@
        ;;gdscript          ; the language you waited for
        (go                 ; the hipster dialect
         +lsp
-        +tree-sitter)
+        ;;+tree-sitter
+        )
        ;;(graphql +lsp)    ; Give queries a REST
        ;;(haskell +lsp)    ; a language that's lazier than I am
        ;;hy                ; readability of scheme w/ speed of python
@@ -188,7 +189,8 @@
         +lsp
         +pyright
         +cython
-        +tree-sitter)      ; beautiful is better than ugly
+        ;;+tree-sitter
+        )      ; beautiful is better than ugly
        ;;qt                ; the 'cutest' gui framework ever
        ;;racket            ; a DSL for DSLs
        ;;raku              ; the artist formerly known as perl6
@@ -197,13 +199,15 @@
        ;;(ruby +rails)     ; 1.step {|i| p "Ruby is #{i.even? ? 'love' : 'life'}"}
        (rust               ; Fe2O3.unwrap().unwrap().unwrap().unwrap()
         +lsp
-        +tree-sitter)
+        ;;+tree-sitter
+        )
        ;;scala             ; java, but good
        ;;(scheme +guile)   ; a fully conniving family of lisps
        (sh                 ; she sells {ba,z,fi}sh shells on the C xor
         +lsp
         ;; +fish
-        +tree-sitter)
+        ;;+tree-sitter
+        )
        ;;sml
        ;;solidity          ; do you need a blockchain? No.
        ;;swift             ; who asked for emoji variables?
@@ -259,7 +263,7 @@
        :private-tools
        conf
        ;; gpt
-       treemacs-icons
+       ;;treemacs-icons
 
        :private-term
        vterm

@@ -13,8 +13,8 @@
   (setq doom-themes-enable-bold t
         doom-themes-enable-italic t
         doom-themes-padded-modeline t)
+
   (load-theme 'doom-one t)
-  ;; (load-theme 'doom-one t)
 
   ;; Enable flashing mode-line on errors
   (doom-themes-visual-bell-config)
