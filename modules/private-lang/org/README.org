@@ -33,7 +33,7 @@
   </tr>
 </table>
 
-* Export Org file to Markdown
+* Emacs Org to Markdown
 1. [[https://pandoc.org/installing.html][Install Pandoc]]
 2. ~M-x org-pandoc-export-to-markdown_mmd~
 3. ~M-x markdown-toc-generate-toc~

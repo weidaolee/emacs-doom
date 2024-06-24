@@ -3,3 +3,4 @@
 (add-to-list 'auto-mode-alist '("\\.cnf\\'" . conf-unix-mode))
 (add-to-list 'auto-mode-alist '("\\.conf\\'" . conf-unix-mode))
 (add-to-list 'auto-mode-alist '("\\.config\\'" . conf-unix-mode))
+(add-to-list 'auto-mode-alist '("\\.ini\\'" . conf-unix-mode))

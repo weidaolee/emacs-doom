@@ -42,3 +42,5 @@
   :config
   (add-hook! 'java-mode-local-vars-hook (smart-newline-mode 0)) ; +1 -> 0
   (add-hook! 'python-mode-local-vars-hook (smart-newline-mode 0)))
+
+(setq! doom-big-font-increment 2)

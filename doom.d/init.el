@@ -21,10 +21,11 @@
        ;;layout            ; auie,ctsrnm is the superior home row
 
        :completion
-       (company +childframe)           ; the ultimate code completion backend
+       (company
+        +childframe)       ; the ultimate code completion backend
        ;;helm              ; the *other* search engine for love and life
        ;;ido               ; the other *other* search engine...
-       (ivy                  ; a search engine for love and life
+       (ivy                ; a search engine for love and life
         ;; +fuzzy
         +prescient
         +childframe
@@ -32,7 +33,9 @@
         ;; private ;;
         ;+helm
         )
-       (vertico +icon)     ; the search engine of the future
+       (vertico            ; the search engine of the future
+        +icon
+        +childframe)
        :ui
        deft                ; notational velocity for Emacs
        doom                ; what makes DOOM look the way it does
@@ -42,7 +45,7 @@
        hl-todo             ; highlight TODO/FIXME/NOTE/DEPRECATED/HACK/REVIEW
        hydra
        indent-guides       ; highlighted indent columns
-       ligatures           ; ligatures and symbols to make your code pretty again
+       (ligatures +extra)  ; ligatures and symbols to make your code pretty again
        ;;minimap           ; show a map of the code on the side
        modeline            ; snazzy, Atom-inspired modeline, plus API
        nav-flash           ; blink cursor line after big motions
@@ -75,8 +78,7 @@
        :emacs
        (dired              ; making dired pretty [functional]
         +icons
-        +ranger
-        )
+        +ranger)
        electric            ; smarter, keyword-based electric-indent
        ;;ibuffer           ; interactive buffer management
        (undo +tree)        ; persistent, smarter undo for your inevitable mistakes
@@ -127,8 +129,7 @@
        ;;beancount         ; mind the GAAP
        (cc                 ; C > C++ == 1
         +lsp
-        ;;+tree-sitter
-        )
+        +tree-sitter)
        ;;clojure           ; java with a lisp
        ;;common-lisp       ; if you've seen one lisp, you've seen them all
        ;;coq               ; proofs-as-programs
@@ -150,7 +151,7 @@
        ;;gdscript          ; the language you waited for
        (go                 ; the hipster dialect
         +lsp
-        ;;+tree-sitter
+        +tree-sitter
         )
        ;;(graphql +lsp)    ; Give queries a REST
        ;;(haskell +lsp)    ; a language that's lazier than I am
@@ -162,7 +163,11 @@
        ;;javascript        ; all(hope(abandon(ye(who(enter(here))))))
        ;;julia             ; a better, faster MATLAB
        ;;kotlin            ; a better, slicker Java(Script)
-       ;;latex             ; writing papers in Emacs has never been so fun
+       (latex              ; writing papers in Emacs has never been so fun
+        +cdlatex
+        +fold
+        +latexmk
+        +lsp)
        ;;lean              ; for folks with too much to prove
        ;;ledger            ; be audit you can be
        ;;lua               ; one-based indices? one-based indices
@@ -189,8 +194,7 @@
         +lsp
         +pyright
         +cython
-        ;;+tree-sitter
-        )      ; beautiful is better than ugly
+        +tree-sitter)      ; beautiful is better than ugly
        ;;qt                ; the 'cutest' gui framework ever
        ;;racket            ; a DSL for DSLs
        ;;raku              ; the artist formerly known as perl6
@@ -199,15 +203,14 @@
        ;;(ruby +rails)     ; 1.step {|i| p "Ruby is #{i.even? ? 'love' : 'life'}"}
        (rust               ; Fe2O3.unwrap().unwrap().unwrap().unwrap()
         +lsp
-        ;;+tree-sitter
+        +tree-sitter
         )
        ;;scala             ; java, but good
        ;;(scheme +guile)   ; a fully conniving family of lisps
        (sh                 ; she sells {ba,z,fi}sh shells on the C xor
         +lsp
         ;; +fish
-        ;;+tree-sitter
-        )
+        +tree-sitter)
        ;;sml
        ;;solidity          ; do you need a blockchain? No.
        ;;swift             ; who asked for emoji variables?
@@ -249,6 +252,8 @@
        evil
        hungry-delete
        drag-stuff
+       selectric-mode
+       typewriter
 
        :private-emacs
        dired
@@ -259,9 +264,13 @@
        go
        sh
        protobuf
+       python
 
        :private-tools
+       ;; eaf
+       docker
        conf
+       debugger
        ;; gpt
        ;;treemacs-icons
 

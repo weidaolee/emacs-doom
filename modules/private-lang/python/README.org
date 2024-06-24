@@ -1,0 +1,6 @@
+* Tell flake8 to ignore specific warnings or errors
+Open ~.config/flake8~
+#+begin_src conf
+[flake8]
+ignore = E501
+#+end_src
