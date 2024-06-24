@@ -2,7 +2,7 @@
 
 ;; frame
 (toggle-frame-maximized)
-(toggle-frame-fullscreen)
+;(toggle-frame-fullscreen)
 (which-function-mode t)
 
 ;; display time, battery

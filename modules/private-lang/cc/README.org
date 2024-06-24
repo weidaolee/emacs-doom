@@ -23,8 +23,8 @@
 * Auto Fromat on Save
 Add the following code to ~.dir-lcoals.el~:
 #+begin_src elisp
-((c-mode . ((eval . (add-hook 'before-save-hook #'clang-format-buffer nil t)))))
-((c++-mode . ((eval . (add-hook 'before-save-hook #'clang-format-buffer nil t)))))
+((c-mode . ((eval . (add-hook 'before-save-hook #'clang-format-buffer nil t))))
+ (c++-mode . ((eval . (add-hook 'before-save-hook #'clang-format-buffer nil t)))))
 
 ((c-mode . ((c-basic-offset . 4)
             (c-offsets-alist . ((access-label . -4)
@@ -53,7 +53,7 @@ Add the following code to ~.dir-lcoals.el~:
                                           (brace-list-open)))))
 #+end_src
 * Download clangd
-Download [[https://github.com/clangd/clangd/releases][clangd-linux-xx.x.xzip]]
+Download [[https://github.com/clangd/clangd/releases][clangd-linux-xx.x.x.zip]]
 * Upgrade Clang format version
 1. Uninstall ~clang-format~
 2. Install ~clang-format-xx~

@@ -24,8 +24,9 @@
        "e" #'doom/forward-to-last-non-comment-or-eol
        "E" #'end-of-buffer
 
-       "u" #'evil-scroll-line-up
-       "d" #'evil-scroll-line-down)
+       "U" #'evil-scroll-line-up
+       "D" #'evil-scroll-line-down
+       )
 
       (:when (modulep! :editor evil +everywhere)
        :map evil-normal-state-map
@@ -48,8 +49,9 @@
        "C-e" nil
        "n" #'evil-ex-search-next
        "p" #'evil-ex-search-previous
-       "N" #'evil-ex-search-next
-       "P" #'evil-ex-search-previous))
+       ;; "N" #'evil-ex-search-next
+       ;; "P" #'evil-ex-search-previous
+       ))
 
 ;; ranger
 (map!

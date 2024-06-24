@@ -2,24 +2,27 @@
 
 (add-to-list 'auto-mode-alist '(".clang-format\\'" . yaml-mode))
 
+(after! lsp-mode
+  (setq lsp-clangd-version "17.0.3"))
+
 ;;; Clang
 (after! lsp-clangd
   (setq lsp-clients-clangd-args
-        '("-j=8"
-          "--pretty"
-          "--background-index"
-          "--clang-tidy"
-          ;; "--clang-tidy-checks=*"
-          "--completion-style=bundled" ;; "--header-insertion=never"
-          ;; "--header-insertion=implicit"
-          ;; "--header-insertion-decorators=0"
+        '(
+          ;;; clangd compilation flags options ;;;
           "--all-scopes-completion"
-          "--log=verbose"
-          "--print-options"
-          "--query-driver"
-          "--background-index-rebuild"
-          ;; "--header-insertion-decorators=1"
-          ;; "--suggest-missing-includes=1"
+          "--background-index"
+          "--background-index-priority=normal"
+          "--clang-tidy"
+          "--completion-style=bundled"
+          "--header-insertion=iwyu"
+          "--header-insertion-decorators"
+          "--import-insertions"
+          ;;; clangd miscellaneous options ;;;
+          "-j=12"
+          "--malloc-trim"
+          "--pch-storage=memory"
+          ;;; clangd protocol and logging options ;;;
           ))
   (set-lsp-priority! 'clangd 2))
 
