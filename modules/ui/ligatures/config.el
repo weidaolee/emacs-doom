@@ -10,34 +10,35 @@
     ;; Functional
     :lambda        "λ"
     :def           "ƒ"
-    :composition   "∘"
-    :map           "↦"
+    ;; :composition   "∘"
+    ;; :map           "↦"
     ;; Types
     :null          "∅"
-    :true          "𝕋"
-    :false         "𝔽"
-    :int           "ℤ"
-    :float         "ℝ"
-    :str           "𝕊"
-    :bool          "𝔹"
-    :list          "𝕃"
+    ;; :true          "𝕋"
+    ;; :false         "𝔽"
+    ;; :int           "𝚭"
+    ;; :uint          "𝚴"
+    ;; :float         "ℝ"
+    ;; :str           "𝕊"
+    ;; :bool          "𝔹"
+    ;; :list          "𝕃"
     ;; Flow
-    :not           "￢"
+    ;; :not           "￢"
     :in            "∈"
     :not-in        "∉"
-    :and           "∧"
-    :or            "∨"
+    ;; :and           "∧"
+    ;; :or            "∨"
     :for           "∀"
     :some          "∃"
-    :return        "⟼"
-    :yield         "⟻"
+    ;; :return        "⟼"
+    ;; :yield         "⟻"
     ;; Other
-    :union         "⋃"
-    :intersect     "∩"
-    :diff          "∖"
-    :tuple         "⨂"
-    :pipe          "" ;; FIXME: find a non-private char
-    :dot           "•")
+    ;; :union         "⋃"
+    ;; :intersect     "∩"
+    ;; :diff          "∖"
+    ;; :tuple         "⨂"
+    ;; :pipe          "" ;; FIXME: find a non-private char
+    :dot           "•" )  ;; ●
   "Maps identifiers to symbols, recognized by `set-ligatures'.
 
 This should not contain any symbols from the Unicode Private Area! There is no
