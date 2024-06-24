@@ -36,3 +36,6 @@
 ;; doom-keybinds.el
 (package! general :pin "a48768f85a655fe77b5f45c2880b420da1b1b9c3")
 (package! which-key :pin "38d4308d1143b61e4004b6e7a940686784e51500")
+
+;; doom-ui.el
+(package! all-the-icons :pin "ee414384938ccf2ce93c77d717b85dc5538a257d") ;https://github.com/doomemacs/doomemacs/issues/7664
