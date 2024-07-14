@@ -56,7 +56,9 @@
        tabs                 ; a tab bar for Emacs
        (treemacs +lsp)      ; a project drawer, like neotree but cooler
        unicode              ; extended unicode support for various languages
-       (vc-gutter +pretty)  ; vcs diff in the fringe
+       (vc-gutter           ; vcs diff in the fringe
+        +diff-hl
+        +pretty)
        vi-tilde-fringe      ; fringe tildes to mark beyond EOB
        window-select        ; visually switch windows
        workspaces           ; tab emulation, persistence & separate workspaces
@@ -71,7 +73,7 @@
        ;;lispy              ; vim for lisp, for people who don't like vim
        multiple-cursors     ; editing in many places at once
        ;;objed              ; text object editing for the innocent
-       ;;parinfer           ; turn lisp into python, sort of
+       parinfer             ; turn lisp into python, sort of
        rotate-text          ; cycle region at point between text candidates
        snippets             ; my elves. They type so I don't have to
        word-wrap            ; soft wrapping with language-aware indent
@@ -81,7 +83,7 @@
         +icons
         +ranger)
        electric             ; smarter, keyword-based electric-indent
-       ;;ibuffer            ; interactive buffer management
+       ibuffer              ; interactive buffer management
        (undo +tree)         ; persistent, smarter undo for your inevitable mistakes
        vc                   ; version-control and Emacs, sitting in a tree
 
@@ -104,19 +106,20 @@
        direnv
        (docker +lsp)
        editorconfig         ; let someone else argue about tabs vs spaces
-       ;;ein                ; tame Jupyter notebooks with emacs
+       ein                  ; tame Jupyter notebooks with emacs
        (eval +overlay)      ; run code, run (also, repls)
        ;;gist               ; interacting with github gists
-       lookup               ; navigate your code and its documentation
+       (lookup              ; navigate your code and its documentation
+        +docsets
+        +dictionary
+        )
        (lsp  +peek)         ; M-x vscode
        magit                ; a git porcelain for Emacs
        make                 ; run make tasks from Emacs
        pass                 ; password manager for nerds
        pdf                  ; pdf enhancements
-       ;;prodigy            ; FIXME managing external services & code builders
-       rgb                  ; creating color strings
-       ;;taskrunner         ; taskrunner for all your projects
-       terraform            ; infrastructure as code
+       prodigy              ; FIXME managing external services & code builders
+       ;;terraform            ; infrastructure as code
        ;;tmux               ; an API for interacting with tmux
        tree-sitter          ; syntax and parsing, sitting in a tree...
        ;;upload             ; map local to remote projects via ssh/ftp
@@ -188,14 +191,14 @@
        ;;php                ; perl's insecure younger brother
        ;;plantuml           ; diagrams for confusing people more
        ;;purescript         ; javascript, but functional
-       (python
+       (python              ; beautiful is better than ugly
         +conda
         +pyenv
         +poetry
         +lsp
         +pyright
         +cython
-        +tree-sitter)       ; beautiful is better than ugly
+        +tree-sitter)
        ;;qt                 ; the 'cutest' gui framework ever
        ;;racket             ; a DSL for DSLs
        ;;raku               ; the artist formerly known as perl6
@@ -231,11 +234,12 @@
        ;;everywhere         ; *leave* Emacs!? You must be joking
        ;;irc                ; how neckbeards socialize
        ;;(rss +org)         ; emacs as an RSS reader
-       ;;twitter            ; twitter client https://twitter.com/vnought
 
        :config
        ;;literate
-       (default +bindings +smartparens)
+       (default
+        +bindings
+        +smartparens)
 
        :private-input
        chinese
@@ -271,8 +275,10 @@
        docker
        conf
        debugger
+       magit
        ;; gpt
        ;;treemacs-icons
+       kubernetes
 
        :private-term
        vterm

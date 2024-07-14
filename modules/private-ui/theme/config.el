@@ -1,12 +1,12 @@
 ;;; private-ui/theme/config.el -*- lexical-binding: t; -*-
 
 
-;; Banner
+;;;; Banner
 (setq org-directory "~/emacs/doomemacs/doom.d/org/")
 (setq +doom-dashboard-banner-dir "~/emacs/doomemacs/doom.d/banners/")
 (setq +doom-dashboard-banner-file "./gnuemacs-300.png")
 
-;; theme
+;;;; theme
 (use-package! doom-themes
   :init
   ;; Global settings (defaults)
@@ -15,6 +15,7 @@
         doom-themes-padded-modeline t)
 
   (load-theme 'doom-one t)
+  ;; (load-theme 'doom-vibrant t)
 
   ;; Enable flashing mode-line on errors
   (doom-themes-visual-bell-config)
