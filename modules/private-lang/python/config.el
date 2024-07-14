@@ -12,6 +12,3 @@
 
 (after! python
   (setq python-prettify-symbols-alist nil))
-
-;; (after! lsp-pyright
-;;   (setq lsp-pyright-typechecking-mode "off"))

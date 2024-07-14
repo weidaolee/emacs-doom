@@ -1,6 +1,21 @@
-* Tell flake8 to ignore specific warnings or errors
-Open ~.config/flake8~
-#+begin_src conf
-[flake8]
-ignore = E501
+
+* Pyright Settings
+Create a ~pyrightconfig.json~ at the project rooot:
+#+begin_src json
+{
+  "typeCheckingMode": "basic",
+  "reportOptionalMemberAccess": "warning",
+  "reportArgumentType": "warning",
+  "reportGeneralTypeIssues": "warning",
+  "reportUnknownMemberType": "warning",
+  "reportMissingTypeStubs": "warning",
+  "reportImportCycles": "warning",
+  "reportUnusedImport": "warning",
+  "reportUnusedFunction": "warning",
+  "reportUnusedVariable": "warning",
+  "reportDuplicateImport": "warning",
+  "reportWildcardImportFromLibrary": "warning"
+}
 #+end_src
+
+See more [[https://github.com/microsoft/pyright/blob/main/docs/settings.md][details]].
