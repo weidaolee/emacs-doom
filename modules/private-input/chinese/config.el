@@ -2,5 +2,6 @@
 
 (after! fcitx
   (setq fcitx-active-evil-states '(insert emacs))
-  (fcitx-aggressive-setup)
-  (setq fcitx-use-dbus t))
+  (setq fcitx-use-dbus nil)
+  (setq fcitx-remote-command "fcitx5-remote")
+  (fcitx-aggressive-setup))

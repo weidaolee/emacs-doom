@@ -75,11 +75,6 @@
 ;; You can also try 'gd' (or 'C-c c d') to jump to their definition and see how
 ;; they are implemented.
 
-;;; Proxy Setting
-(setq url-proxy-services
-      '(("http" . "127.0.0.1:7890")
-        ("https" . "127.0.0.1:7890")))
-
 (load! "key-bindings/roam.el")
 (load! "key-bindings/evil.el")
 (load! "key-bindings/global.el")

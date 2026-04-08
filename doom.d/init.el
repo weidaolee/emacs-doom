@@ -283,6 +283,9 @@
        :private-term
        vterm
 
+       :private-proxy
+       ;;default
+
        :private-config
        emacs
        encoding
