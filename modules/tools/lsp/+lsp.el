@@ -15,16 +15,16 @@ Can be a list of backends; accepts any value `company-backends' accepts.")
   :commands lsp-install-server
   :init
   ;; Don't touch ~/.emacs.d, which could be purged without warning
-  (setq lsp-session-file (concat doom-cache-dir "lsp-session")
-        lsp-server-install-dir (concat doom-data-dir "lsp"))
+  (setq lsp-session-file (file-name-concat doom-profile-cache-dir "lsp-session")
+        lsp-server-install-dir (file-name-concat doom-profile-data-dir "lsp/"))
   ;; Don't auto-kill LSP server after last workspace buffer is killed, because I
   ;; will do it for you, after `+lsp-defer-shutdown' seconds.
   (setq lsp-keep-workspace-alive nil)
 
-  ;; NOTE I tweak LSP's defaults in order to make its more expensive or imposing
-  ;;      features opt-in. Some servers implement these poorly and, in most
-  ;;      cases, it's safer to rely on Emacs' native mechanisms (eldoc vs
-  ;;      lsp-ui-doc, open in popup vs sideline, etc).
+  ;; NOTE: I tweak LSP's defaults in order to make its more expensive or
+  ;;   imposing features opt-in. Some servers implement these poorly and, in
+  ;;   most cases, it's safer to rely on Emacs' native mechanisms (eldoc vs
+  ;;   lsp-ui-doc, open in popup vs sideline, etc).
 
   ;; Disable features that have great potential to be slow.
   (setq lsp-enable-folding nil
@@ -34,23 +34,25 @@ Can be a list of backends; accepts any value `company-backends' accepts.")
   ;; Make breadcrumbs opt-in; they're redundant with the modeline and imenu
   (setq lsp-headerline-breadcrumb-enable nil)
 
+  ;; Explicitly tell lsp to use flymake; Lsp will default to flycheck if found
+  ;; even if its a dependency
+  (when (modulep! :checkers syntax +flymake)
+    (setq lsp-diagnostics-provider :flymake))
+
   ;; Let doom bind the lsp keymap.
   (when (modulep! :config default +bindings)
     (setq lsp-keymap-prefix nil))
 
   :config
-  (add-to-list 'doom-debug-variables 'lsp-log-io)
+  (set-debug-var! 'lsp-log-io t 2)
 
-  (setq lsp-intelephense-storage-path (concat doom-data-dir "lsp-intelephense/")
+  (setq lsp-intelephense-storage-path (file-name-concat doom-profile-data-dir "lsp-intelephense/")
         lsp-vetur-global-snippets-dir
         (expand-file-name
          "vetur" (or (bound-and-true-p +snippets-dir)
-                     (concat doom-user-dir "snippets/")))
+                     (file-name-concat doom-user-dir "snippets/")))
         lsp-xml-jar-file (expand-file-name "org.eclipse.lsp4xml-0.3.0-uber.jar" lsp-server-install-dir)
         lsp-groovy-server-file (expand-file-name "groovy-language-server-all.jar" lsp-server-install-dir))
-
-  ;; REVIEW Remove this once this is fixed upstream.
-  (add-to-list 'lsp-client-packages 'lsp-racket)
 
   (add-hook! 'doom-escape-hook
     (defun +lsp-signature-stop-maybe-h ()
@@ -59,13 +61,17 @@ Can be a list of backends; accepts any value `company-backends' accepts.")
         (lsp-signature-stop)
         t)))
 
-  (set-popup-rule! "^\\*lsp-\\(help\\|install\\)" :size 0.35 :quit t :select t)
+  (set-popup-rule! "^\\*lsp-\\(help\\|install\\)" :size 0.3 :quit t :select t)
   (set-lookup-handlers! 'lsp-mode
     :definition #'+lsp-lookup-definition-handler
     :references #'+lsp-lookup-references-handler
     :documentation '(lsp-describe-thing-at-point :async t)
     :implementations '(lsp-find-implementation :async t)
     :type-definition #'lsp-find-type-definition)
+
+  ;; HACK: See emacs-lsp/lsp-mode#3577
+  (unless (modulep! :tools terraform)
+    (setq lsp-client-packages (delete 'lsp-terraform lsp-client-packages)))
 
   (defadvice! +lsp--respect-user-defined-checkers-a (fn &rest args)
     "Ensure user-defined `flycheck-checker' isn't overwritten by `lsp'."
@@ -76,7 +82,11 @@ Can be a list of backends; accepts any value `company-backends' accepts.")
           (setq-local flycheck-checker old-checker))
       (apply fn args)))
 
-  (add-hook! 'lsp-mode-hook #'+lsp-optimization-mode)
+  (add-hook 'lsp-before-initialize-hook #'+lsp-optimization-mode)
+  (add-hook! 'lsp-after-uninitialized-functions
+    (defun +lsp--disable-optimization-mode-if-no-workspaces-h (_workspace)
+      (unless (lsp--session-workspaces lsp--session)
+        (+lsp-optimization-mode -1))))
 
   (when (modulep! :completion company)
     (add-hook! 'lsp-completion-mode-hook
@@ -98,20 +108,20 @@ server getting expensively restarted when reverting buffers."
             restart
             (null +lsp-defer-shutdown)
             (= +lsp-defer-shutdown 0))
-        (prog1 (funcall fn restart)
-          (+lsp-optimization-mode -1))
+        (funcall fn restart)
       (when (timerp +lsp--deferred-shutdown-timer)
         (cancel-timer +lsp--deferred-shutdown-timer))
       (setq +lsp--deferred-shutdown-timer
             (run-at-time
              (if (numberp +lsp-defer-shutdown) +lsp-defer-shutdown 3)
-             nil (lambda (workspace)
-                   (with-lsp-workspace workspace
-                     (unless (lsp--workspace-buffers workspace)
-                       (let ((lsp-restart 'ignore))
-                         (funcall fn))
-                       (+lsp-optimization-mode -1))))
-             lsp--cur-workspace))))
+             nil (lambda (workspaces)
+                   (dolist (ws workspaces)
+                     (or (cl-some #'lsp-buffer-live-p
+                                  (lsp--workspace-buffers ws))
+                         (with-lsp-workspace ws
+                           (let ((lsp-restart 'ignore))
+                             (funcall fn))))))
+             lsp--buffer-workspaces))))
 
   (when (modulep! :ui modeline +light)
     (defvar-local lsp-modeline-icon nil)
@@ -128,11 +138,36 @@ server getting expensively restarted when reverting buffers."
                (label (if workspaces "LSP Connected" "LSP Disconnected")))
           (setq lsp-modeline-icon (concat
                                    " "
-                                   (+modeline-format-icon 'faicon "rocket" "" face label -0.0575)
+                                   (+modeline-format-icon 'faicon "nf-fa-rocket" "" face label -0.0575)
                                    " "))
           (add-to-list 'global-mode-string
                        '(t (:eval lsp-modeline-icon))
-                       'append))))))
+                       'append)))))
+
+  (when (modulep! :completion corfu)
+    (setq lsp-completion-provider :none)
+    (add-hook 'lsp-mode-hook #'lsp-completion-mode))
+
+  ;; TODO: Without eglot-booster's `jsonrpc--json-read' advice, this advice is
+  ;;   counter-productive. And it's questionable whether the marginal gains from
+  ;;   IO buffering beyond Emacs 30+ are worth the trouble. Also needs to be
+  ;;   tested with `lsp-use-plists'.
+  ;; (when (modulep! +booster)
+  ;;   (defadvice! +lsp--booster-final-command-a (fn cmd &optional test?)
+  ;;     "Prepend emacs-lsp-booster command to lsp CMD."
+  ;;     :around #'lsp-resolve-final-command
+  ;;     (let ((orig-result (funcall fn cmd test?)))
+  ;;       (if (and (not test?)                             ;; for check lsp-server-present?
+  ;;                (not (file-remote-p default-directory)) ;; see lsp-resolve-final-command, it would add extra shell wrapper
+  ;;                (not (functionp 'json-rpc-connection))  ;; native json-rpc
+  ;;                (executable-find "emacs-lsp-booster"))
+  ;;           (progn
+  ;;             (when-let* ((command-from-exec-path (executable-find (car orig-result))))  ;; resolve command from exec-path (in case not found in $PATH)
+  ;;               (setcar orig-result command-from-exec-path))
+  ;;             (message "Using emacs-lsp-booster for %s!" orig-result)
+  ;;             (append '("emacs-lsp-booster" "--disable-bytecode" "--") orig-result))
+  ;;         orig-result))))
+  )
 
 
 (use-package! lsp-ui

@@ -5,6 +5,10 @@
              (modulep! :tools lsp))
          "This module requires (:tools lsp)")
 
+(assert! (or (not (modulep! +tree-sitter))
+             (modulep! :tools tree-sitter))
+         "This module requires (:tools tree-sitter)")
+
 (unless (executable-find "cabal")
   (warn! "Couldn't find cabal. haskell-mode may have issues."))
 
@@ -17,7 +21,7 @@
   Install it or enable +lsp."))
 
 (when (and (modulep! :editor format)
-           (not (modulep! +lsp))
+           (modulep! -lsp)
            (not (executable-find "brittany")))
   (warn! "Couldn't find brittany. Code formatting will not work.
   Install it or enable +lsp."))

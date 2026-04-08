@@ -5,7 +5,7 @@
 
 * Description :unfold:
 #+begin_quote
- 🔨 This module has no description. [[doom-contrib-module:][Write one?]]
+ 󱌣 This module has no description. [[doom-contrib-module:][Write one?]]
 #+end_quote
 
 ** Maintainers
@@ -15,12 +15,15 @@
 - +gmail ::
   Enable gmail-specific configuration for mail ~To~ or ~From~ a gmail address.
 
+- +xface ::
+  Enable support of [X-Face] powered by [compface].
+
 ** Packages
 - [[doom-package:wanderlust]]
 
 ** TODO Hacks
 #+begin_quote
- 🔨 This module's hacks haven't been documented yet. [[doom-contrib-module:][Document them?]]
+ 󱌣 This module's hacks haven't been documented yet. [[doom-contrib-module:][Document them?]]
 #+end_quote
 
 ** TODO Changelog
@@ -34,12 +37,12 @@
 
 * TODO Usage
 #+begin_quote
-🔨 This module has no usage documentation yet. [[doom-contrib-module:][Write some?]]
+ 󱌣 This module has no usage documentation yet. [[doom-contrib-module:][Write some?]]
 #+end_quote
 
 * TODO Configuration
 #+begin_quote
-🔨 This module has no configuration documentation yet. [[doom-contrib-module:][Write some?]]
+ 󱌣 This module has no configuration documentation yet. [[doom-contrib-module:][Write some?]]
 #+end_quote
 
 * Troubleshooting
@@ -50,5 +53,8 @@
 
 * TODO Appendix
 #+begin_quote
-🔨 This module has no appendix yet. [[doom-contrib-module:][Write one?]]
+ 󱌣 This module has no appendix yet. [[doom-contrib-module:][Write one?]]
 #+end_quote
+
+[X-Face]: https://en.wikipedia.org/wiki/X-Face
+[compface]: http://freecode.com/projects/compface/

@@ -4,24 +4,26 @@
 ;; by apps Reeder and Readkit. It can be invoked via `=rss'. Otherwise, if you
 ;; don't care for the UI you can invoke elfeed directly with `elfeed'.
 
-(defvar +rss-split-direction 'below
-  "What direction to pop up the entry buffer in elfeed.")
-
-(defvar +rss-enable-sliced-images t
+(defcustom +rss-enable-sliced-images t
   "Automatically slice images shown in elfeed-show-mode buffers, making them
-easier to scroll through.")
+easier to scroll through."
+  :type 'boolean
+  :group '+rss)
 
-(defvar +rss-workspace-name "*rss*"
-  "Name of the workspace that contains the elfeed buffer.")
+(defcustom +rss-workspace-name "*rss*"
+  "Name of the workspace that contains the elfeed buffer."
+  :type 'string
+  :group '+rss)
+
 
 ;;
-;; Packages
+;;; Packages
 
 (use-package! elfeed
   :commands elfeed
   :init
-  (setq elfeed-db-directory (concat doom-local-dir "elfeed/db/")
-        elfeed-enclosure-default-dir (concat doom-local-dir "elfeed/enclosures/"))
+  (setq elfeed-db-directory (file-name-concat doom-profile-data-dir "elfeed" "db/")
+        elfeed-enclosure-default-dir (file-name-concat doom-profile-data-dir "elfeed" "enclosures/"))
   :config
   (setq elfeed-search-filter "@2-week-ago "
         elfeed-show-entry-switch #'pop-to-buffer
@@ -66,7 +68,6 @@ easier to scroll through.")
           :n "gc" #'+rss/copy-link)))
 
 
-
 (use-package! elfeed-org
   :when (modulep! +org)
   :after elfeed
@@ -83,7 +84,22 @@ easier to scroll through.")
           (message "elfeed-org: ignoring %S because it can't be read" file))
         (setq rmh-elfeed-org-files (cl-remove-if-not #'file-exists-p files))))))
 
+
 (use-package! elfeed-goodies
   :after elfeed
   :config
   (elfeed-goodies/setup))
+
+
+(use-package! elfeed-tube
+  :when (modulep! +youtube)
+  :after elfeed
+  :config (elfeed-tube-setup)
+  (map! (:map elfeed-show-mode-map
+         [remap save-buffer] #'elfeed-tube-save
+         "F" #'elfeed-tube-fetch
+         "C-c C-f" #'elfeed-tube-mpv-follow-mode
+         "C-c C-w" #'elfeed-tube-mpv-where)
+        (:map elfeed-search-mode-map
+         [remap save-buffer] #'elfeed-tube-save
+         "F" #'elfeed-tube-fetch)))

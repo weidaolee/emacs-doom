@@ -3,13 +3,11 @@
 (use-package! julia-mode
   :interpreter "julia"
   :config
-  (set-repl-handler! 'julia-mode #'+julia/open-repl)
+  (unless (modulep! +snail)
+    (set-repl-handler! '(julia-mode julia-ts-mode) #'+julia/open-repl))
 
   (when (modulep! +lsp)
     (add-hook 'julia-mode-local-vars-hook #'lsp! 'append))
-
-  (when (modulep! +tree-sitter)
-    (add-hook 'julia-mode-local-vars-hook #'tree-sitter! 'append))
 
   ;; Borrow matlab.el's fontification of math operators. From
   ;; <https://web.archive.org/web/20170326183805/https://ogbe.net/emacsconfig.html>
@@ -46,13 +44,26 @@
         1 font-lock-type-face)))))
 
 
+(use-package! julia-ts-mode
+  :when (modulep! +tree-sitter)
+  :defer t
+  :init
+  (set-tree-sitter! 'julia-mode 'julia-ts-mode
+    '((julia :url "https://github.com/tree-sitter/tree-sitter-julia")))
+  :config
+  (when (modulep! +lsp)
+    (add-hook 'julia-ts-mode-local-vars-hook #'lsp! 'append)))
+
+
 (use-package! julia-repl
   :preface (defvar +julia-repl-start-hook nil)
   :hook (julia-mode . julia-repl-mode)
+  :hook (julia-ts-mode . julia-repl-mode)
   :hook (+julia-repl-start . +julia-override-repl-escape-char-h)
   :hook (+julia-repl-start . julia-repl-use-emacsclient)
   :config
-  (set-popup-rule! "^\\*julia.*\\*$" :ttl nil)
+  (unless (modulep! +snail)
+    (set-popup-rule! "^\\*julia.*\\*$" :ttl nil))
 
   (when (modulep! :ui workspaces)
     (defadvice! +julia--namespace-repl-buffer-to-workspace-a (&optional executable-key suffix)
@@ -74,8 +85,10 @@
 (use-package! lsp-julia
   :when (modulep! +lsp)
   :unless (modulep! :tools lsp +eglot)
-  :after lsp-mode
-  :preface (setq lsp-julia-default-environment nil)
+  :defer t
+  :preface
+  (after! lsp-mode (add-to-list 'lsp-client-packages 'lsp-julia))
+  (setq lsp-julia-default-environment nil)
   :init
   ;; If no environment is set, then auto-detect one in ~/.julia/environments/,
   ;; falling back to `lsp-julia-default-environment's default.
@@ -89,10 +102,44 @@
   :when (modulep! +lsp)
   :when (modulep! :tools lsp +eglot)
   :after eglot
-  :preface
-  ;; Prevent auto-install of LanguageServer.jl
-  (setq eglot-jl-language-server-project "~/.julia/environments/v1.6")
   :init
   ;; Prevent timeout while installing LanguageServer.jl
-  (setq-hook! 'julia-mode-hook eglot-connect-timeout (max eglot-connect-timeout 60))
+  (setq-hook! '(julia-mode-hook julia-ts-mode-hook)
+    eglot-connect-timeout (max eglot-connect-timeout 60))
   :config (eglot-jl-init))
+
+
+(use-package! julia-snail
+  :when (modulep! +snail)
+  :when (modulep! :term vterm)
+  :hook (julia-mode . julia-snail-mode)
+  :hook (julia-ts-mode . julia-snail-mode)
+  :init
+  (after! julia-mode
+    (set-repl-handler! 'julia-mode #'+julia/open-snail-repl
+      :persist t
+      ;; FIXME: These aren't working as expected
+      :send-region #'julia-snail-send-region
+      :send-buffer #'julia-snail-send-buffer-file))
+
+  :config
+  (set-popup-rule! "^\\*julia.*\\*$" :ttl nil :select nil :quit nil)
+
+  (setq-default julia-snail-multimedia-enable t)
+
+  (map! (:localleader
+         (:map (julia-snail-mode-map)
+               "'" #'julia-snail
+               "a" #'julia-snail-package-activate
+               "r" #'julia-snail-update-module-cache
+               "d" #'julia-snail-doc-lookup
+               (:prefix ("e" . "eval")
+                        "b" #'julia-snail-send-buffer-file
+                        "l" #'julia-snail-send-line
+                        "r" #'julia-snail-send-region
+                        "e" #'julia-snail-send-dwim))
+         (:map (julia-snail-repl-mode-map)
+               "a" #'julia-snail-package-activate
+               "d" #'julia-snail-doc-lookup
+               "m" #'julia-snail-repl-go-back
+               "r" #'julia-snail-update-module-cache))))

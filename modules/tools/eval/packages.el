@@ -1,6 +1,6 @@
 ;; -*- no-byte-compile: t; -*-
 ;;; tools/eval/packages.el
 
-(package! quickrun :pin "7a89313c07a21eae9cd69a1a98e2a134d559e04f")
+(package! quickrun :pin "9199e222f95104ee83e115a9d5ac159d86816706")
 (when (modulep! +overlay)
-  (package! eros :pin "dd8910279226259e100dab798b073a52f9b4233a"))
+  (package! eros :pin "66ee90baa3162fea028f5101ddcc370f7d1d4fcf"))

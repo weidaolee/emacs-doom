@@ -1,8 +1,8 @@
 ;; -*- no-byte-compile: t; -*-
 ;;; app/calendar/packages.el
 
-(package! calfw :pin "03abce97620a4a7f7ec5f911e669da9031ab9088")
-(package! calfw-org :pin "03abce97620a4a7f7ec5f911e669da9031ab9088")
-(package! calfw-cal :pin "03abce97620a4a7f7ec5f911e669da9031ab9088")
-(package! calfw-ical :pin "03abce97620a4a7f7ec5f911e669da9031ab9088")
-(package! org-gcal :pin "9bb3720525ad1c45823abab8ce910dd1225e7dcd")
+(when (package! calfw :pin "36846cdca91794cf38fa171d5a3ac291d3ebc060")
+  (package! calfw-org)   ; part of calfw
+  (package! calfw-cal)   ; part of calfw
+  (package! calfw-ical)) ; part of calfw
+(package! org-gcal :pin "0f46c08f60355729526e970e370defe624e84956")

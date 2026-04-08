@@ -40,7 +40,7 @@ documentation of their respective [[doom-module::lang]] module for instructions.
 
 * TODO Usage
 #+begin_quote
- 🔨 /This module's usage documentation is incomplete./ [[doom-contrib-module:][Complete it?]]
+ 󱌣 /This module's usage documentation is incomplete./ [[doom-contrib-module:][Complete it?]]
 #+end_quote
 
 ** Inline Code Evaluation
@@ -62,7 +62,7 @@ Invoked via:
 
 * TODO Configuration
 #+begin_quote
- 🔨 /This module's configuration documentation is incomplete./ [[doom-contrib-module:][Complete it?]]
+ 󱌣 /This module's configuration documentation is incomplete./ [[doom-contrib-module:][Complete it?]]
 #+end_quote
 
 ** Register a REPL for a major-mode
@@ -119,7 +119,7 @@ A simpler version is simply to use the path to the binary:
 
 Or if you'd rather run an elisp command:
 #+begin_src emacs-lisp
-(set-eval-handler! 'emacs-lisp-mode #'+emacs-lisp-eval)
+(set-eval-handler! 'emacs-lisp-mode #'+emacs-lisp-eval-fn)
 #+end_src
 
 * TODO Troubleshooting
@@ -130,5 +130,5 @@ Or if you'd rather run an elisp command:
 
 * TODO Appendix
 #+begin_quote
- 🔨 This module has no appendix yet. [[doom-contrib-module:][Write one?]]
+ 󱌣 This module has no appendix yet. [[doom-contrib-module:][Write one?]]
 #+end_quote

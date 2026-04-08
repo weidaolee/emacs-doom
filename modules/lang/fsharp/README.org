@@ -18,9 +18,13 @@ This module adds [[https://fsharp.org/][F#]] support to Doom Emacs.
 - +lsp ::
   Enable LSP support for ~fsharp-mode~. Requires [[doom-module::tools lsp]] and a langserver
   (supports [[https://github.com/emacs-lsp/lsp-mode/blob/master/clients/lsp-fsharp.el][lsp-fsharp]].).
+- +tree-sitter ::
+  Leverages tree-sitter for better syntax highlighting and structural text
+  editing. Requires Emacs 29.1+ and [[doom-module::tools tree-sitter]].
 
 ** Packages
 - [[doom-package:fsharp-mode]]
+- [[doom-package:fsharp-ts-mode]] if [[doom-module:+tree-sitter]]
 - [[doom-package:lsp-fsharp]] if [[doom-package:+lsp]]
 
 ** Hacks
@@ -48,14 +52,21 @@ pacman -S mono
 ** LSP
 The language server is automatically installed by [[https://github.com/emacs-lsp/lsp-mode/blob/master/clients/lsp-fsharp.el][lsp-fsharp]].
 
+** Fantomas
+Fantomas is used for formatting via [[doom-module::editor format]] and can be installed as a [[https://dotnet.microsoft.com/en-us/download][dotnet]] tool. 
+
+#+begin_src shell
+dotnet tool install -g fantomas-tool
+#+end_src
+
 * TODO Usage
 #+begin_quote
- 🔨 This module has no usage documentation yet. [[doom-contrib-module:][Write some?]]
+ 󱌣 This module has no usage documentation yet. [[doom-contrib-module:][Write some?]]
 #+end_quote
 
 * TODO Configuration
 #+begin_quote
- 🔨 This module has no configuration documentation yet. [[doom-contrib-module:][Write some?]]
+ 󱌣 This module has no configuration documentation yet. [[doom-contrib-module:][Write some?]]
 #+end_quote
 
 * Troubleshooting
@@ -66,5 +77,5 @@ The language server is automatically installed by [[https://github.com/emacs-lsp
 
 * TODO Appendix
 #+begin_quote
- 🔨 This module has no appendix yet. [[doom-contrib-module:][Write one?]]
+ 󱌣 This module has no appendix yet. [[doom-contrib-module:][Write one?]]
 #+end_quote

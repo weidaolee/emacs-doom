@@ -5,17 +5,23 @@
   :hook (eglot-managed-mode . +lsp-optimization-mode)
   :init
   (setq eglot-sync-connect 1
-        eglot-connect-timeout 10
         eglot-autoshutdown t
-        eglot-send-changes-idle-time 0.5
-        ;; NOTE We disable eglot-auto-display-help-buffer because :select t in
-        ;;      its popup rule causes eglot to steal focus too often.
-        eglot-auto-display-help-buffer nil)
-  (when (modulep! :checkers syntax)
-    (setq eglot-stay-out-of '(flymake)))
+        ;; NOTE: We disable eglot-auto-display-help-buffer because :select t in
+        ;;   its popup rule causes eglot to steal focus too often.
+        eglot-auto-display-help-buffer nil
+        ;; Leave it to our modules and user config to initialize these.
+        eglot-stay-out-of
+        (append (if (modulep! :checkers syntax -flymake)
+                    '(flymake))
+                (if (modulep! :completion company)
+                    '(company)))
+        ;; Margin indicator may increase line height due to glyph display
+        ;; failures or emoji font height differences; I also think the eldoc
+        ;; hint is enough.
+        eglot-code-action-indications '(eldoc-hint))
 
   :config
-  (set-popup-rule! "^\\*eglot-help" :size 0.15 :quit t :select t)
+  (set-popup-rule! "^\\*eglot-help" :size 0.3 :quit t :select t)
   (set-lookup-handlers! 'eglot--managed-mode
     :definition      #'xref-find-definitions
     :references      #'xref-find-references
@@ -23,13 +29,22 @@
     :type-definition #'eglot-find-typeDefinition
     :documentation   #'+eglot-lookup-documentation)
 
-  (add-to-list 'doom-debug-variables '(eglot-events-buffer-size . 0))
+  ;; Leave management of flymake to the :checkers syntax module.
+  (when (modulep! :checkers syntax -flymake)
+    (add-to-list 'eglot-stay-out-of 'flymake))
+
+  ;; PERF: Disable the eglot-events-buffer, so Emacs doesn't churn GC and CPU
+  ;;   cycles on pretty-printing the events buffer in the background (once it
+  ;;   reaches max size). Enable debug mode to restore the events buffer.
+  (cl-callf plist-put eglot-events-buffer-config :size 0)
+
+  (set-debug-var! 'eglot-events-buffer-config '(:size 2000000 :format full))
 
   (defadvice! +lsp--defer-server-shutdown-a (fn &optional server)
     "Defer server shutdown for a few seconds.
 This gives the user a chance to open other project files before the server is
-auto-killed (which is a potentially expensive process). It also prevents the
-server getting expensively restarted when reverting buffers."
+auto-killed (which is a potentially expensive process). It also spares the
+server an expensive restart when its buffer is reverted."
     :around #'eglot--managed-mode
     (letf! (defun eglot-shutdown (server)
              (if (or (null +lsp-defer-shutdown)
@@ -46,13 +61,28 @@ server getting expensively restarted when reverting buffers."
       (funcall fn server))))
 
 
-(use-package! consult-eglot
-  :defer t
-  :when (modulep! :completion vertico)
+(use-package! eglot-booster
+  :when (modulep! +booster)
+  :after eglot
   :init
-  (map! :map eglot-mode-map [remap xref-find-apropos] #'consult-eglot-symbols))
+  (setq eglot-booster-io-only
+        ;; JSON parser on 30+ is faster, so we only exploit eglot-booster's IO
+        ;; buffering (benefits more talkative LSP servers).
+        (and (> emacs-major-version 29)
+             (not (functionp 'json-rpc-connection))))
+  :config
+  (eglot-booster-mode +1))
+
+
+(use-package! consult-eglot
+  :when (modulep! :completion vertico)
+  :defer t
+  :init
+  (map! :after eglot
+        :map eglot-mode-map
+        [remap xref-find-apropos] #'consult-eglot-symbols))
 
 
 (use-package! flycheck-eglot
-  :when (modulep! :checkers syntax)
+  :when (modulep! :checkers syntax -flymake)
   :hook (eglot-managed-mode . flycheck-eglot-mode))

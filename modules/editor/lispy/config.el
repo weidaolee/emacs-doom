@@ -10,6 +10,7 @@
          (lfe-mode . lispy-mode)
          (dune-mode . lispy-mode)
          (clojure-mode . lispy-mode)
+         (clojure-ts-mode . lispy-mode)
          (fennel-mode . lispy-mode))
   :init
   (add-hook! 'eval-expression-minibuffer-setup-hook
@@ -46,7 +47,4 @@
           additional
           additional-insert))
   :config
-  (lispyville-set-key-theme)
-  (add-hook! 'evil-escape-inhibit-functions
-    (defun +lispy-inhibit-evil-escape-fn ()
-      (and lispy-mode (evil-insert-state-p)))))
+  (lispyville-set-key-theme))

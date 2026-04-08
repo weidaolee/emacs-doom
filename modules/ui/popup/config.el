@@ -132,9 +132,11 @@ prevent the popup(s) from messing up the UI (or vice versa)."
       ("^ \\*" :slot 1 :vslot -1 :size +popup-shrink-to-fit)))
   (when (modulep! +defaults)
     '(("^\\*Completions" :ignore t)
-      ("^\\*Local variables\\*$"
-       :vslot -1 :slot 1 :size +popup-shrink-to-fit)
-      ("^\\*\\(?:[Cc]ompil\\(?:ation\\|e-Log\\)\\|Messages\\)"
+      ("^\\*Local Variables\\*$"
+       :vslot -1 :slot 1 :size +popup-shrink-to-fit :modeline nil)
+      ("^\\*compilation"
+       :vslot -2 :size 0.3  :autosave t :quit t :ttl 0)
+      ("^\\*\\(?:[Cc]ompile-Log\\|Messages\\)"
        :vslot -2 :size 0.3  :autosave t :quit t :ttl nil)
       ("^\\*\\(?:doom \\|Pp E\\)"  ; transient buffers (no interaction required)
        :vslot -3 :size +popup-shrink-to-fit :autosave t :select ignore :quit t :ttl 0)
@@ -168,11 +170,11 @@ prevent the popup(s) from messing up the UI (or vice versa)."
 
 (add-hook 'doom-init-ui-hook #'+popup-mode 'append)
 
-(add-hook! '+popup-buffer-mode-hook
-           #'+popup-adjust-fringes-h
-           #'+popup-adjust-margins-h
-           #'+popup-set-modeline-on-enable-h
-           #'+popup-unset-modeline-on-disable-h)
+(add-hook '+popup-buffer-mode-hook #'+popup-set-modeline-on-enable-h)
+(add-hook '+popup-buffer-mode-hook #'+popup-unset-modeline-on-disable-h)
+
+(add-hook '+popup-create-window-hook #'+popup-adjust-fringes-h)
+(add-hook '+popup-create-window-hook #'+popup-adjust-margins-h)
 
 
 ;;

@@ -24,18 +24,23 @@
   :mode "\\.vue\\'"
   :config
   (set-docsets! 'web-mode "HTML" "CSS" "Twig" "WordPress")
+  (set-indent-vars! 'web-mode
+                    '(web-mode-code-indent-offset
+                      web-mode-css-indent-offset
+                      web-mode-markup-indent-offset
+                      web-mode-sql-indent-offset))
 
   ;; tidy is already defined by the format-all package. We redefine it to add
   ;; more sensible arguments to the tidy command.
-  (set-formatter! 'html-tidy
-    '("tidy" "-q" "-indent"
-      "--tidy-mark" "no"
-      "--drop-empty-elements" "no"
-      ("--show-body-only" "%s" (if +format-region-p "true" "auto"))
-      ("--indent-spaces" "%d" tab-width)
-      ("--indent-with-tabs" "%s" (if indent-tabs-mode "yes" "no"))
-      ("-xml" (memq major-mode '(nxml-mode xml-mode))))
-    :ok-statuses '(0 1))
+  ;; (set-formatter! 'html-tidy
+  ;;   '("tidy" "-q" "-indent"
+  ;;     "--tidy-mark" "no"
+  ;;     "--drop-empty-elements" "no"
+  ;;     ("--show-body-only" "%s" (if +format-region-p "true" "auto"))
+  ;;     ("--indent-spaces" "%d" tab-width)
+  ;;     ("--indent-with-tabs" "%s" (if indent-tabs-mode "yes" "no"))
+  ;;     ("-xml" (memq major-mode '(nxml-mode xml-mode))))
+  ;;   :ok-statuses '(0 1))
 
   (setq web-mode-enable-html-entities-fontification t
         web-mode-auto-close-style 1)
@@ -62,7 +67,7 @@
                        collect (cons (car pair)
                                      (string-trim-right (cdr pair)
                                                         "\\(?:>\\|]\\|}\\)+\\'")))))
-    (delq! nil web-mode-engines-auto-pairs))
+    (cl-callf2 delq nil web-mode-engines-auto-pairs))
 
   (add-to-list 'web-mode-engines-alist '("elixir" . "\\.eex\\'"))
   (add-to-list 'web-mode-engines-alist '("phoenix" . "\\.[lh]eex\\'"))
@@ -142,7 +147,6 @@
             "p" #'web-mode-tag-previous
             "s" #'web-mode-tag-select))
 
-        :g  "M-/" #'web-mode-comment-or-uncomment
         :i  "SPC" #'self-insert-command
         :n  "za"  #'web-mode-fold-or-unfold
         :nv "]a"  #'web-mode-attribute-next
@@ -164,11 +168,23 @@
 
 (when (modulep! +lsp)
   (add-hook! '(html-mode-local-vars-hook
+               html-ts-mode-local-vars-hook
                web-mode-local-vars-hook
                nxml-mode-local-vars-hook)
              :append #'lsp!))
 
-(when (modulep! +tree-sitter)
-  (add-hook! '(html-mode-local-vars-hook
-               mhtml-mode-local-vars-hook)
-             :append #'tree-sitter!))
+
+(use-package! html-ts-mode  ; 30.1+ only
+  :when (modulep! +tree-sitter)
+  :defer t
+  :init
+  (set-tree-sitter! 'html-mode 'html-ts-mode
+    `((html :url "https://github.com/tree-sitter/tree-sitter-html"
+            :rev ,(if (< (treesit-library-abi-version) 15) "v0.23.0" "v0.23.2")))))
+
+
+(use-package! mhtml-ts-mode  ; 31+ only
+  :when (modulep! +tree-sitter)
+  :defer t
+  :init
+  (set-tree-sitter! 'mhtml-mode 'mhtml-ts-mode 'html))

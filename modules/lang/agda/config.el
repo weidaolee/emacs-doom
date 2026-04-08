@@ -11,11 +11,7 @@
   (set-lookup-handlers! 'agda2-mode
     :definition #'agda2-goto-definition-keyboard)
 
-  (when (modulep! +tree-sitter)
-    (set-tree-sitter-lang! 'agda2-mode 'agda)
-    (add-hook! '(agda-mode-local-vars-hook
-                 agda2-mode-local-vars-hook)
-               :append #'tree-sitter!))
+  ;; TODO: agda2-ts-mode
 
   (map! :map agda2-mode-map
         :localleader
@@ -24,7 +20,7 @@
         ","   #'agda2-goal-and-context
         "="   #'agda2-show-constraints
         "SPC" #'agda2-give
-        "a"   #'agda2-auto-maybe-all
+        "a"   #'agda2-mimer-maybe-all
         "b"   #'agda2-previous-goal
         "c"   #'agda2-make-case
         "d"   #'agda2-infer-type-maybe-toplevel

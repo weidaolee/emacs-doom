@@ -1,4 +1,11 @@
 ;; -*- no-byte-compile: t; -*-
 ;;; core/use-package/packages.el
 
-(package! use-package :pin "77945e002f11440eae72d8730d3de218163d551e")
+(package! bind-key
+  ;; HACK: bind-key-pkg.el in the emacs-straight mirror tries to set the mode to
+  ;;   lisp-data-mode, which doesn't exist prior to Emacs 28.x, so bind-key will
+  ;;   fail to build for those users. Until we drop 27.x support, we omit it.
+  :recipe (:files ("bind-key.el"))
+  :pin "e9ead409b17d8cf7c221f6c28e115a8c051be9e3")
+
+(package! use-package :pin "4b3484b550431f74ab9cda060a8dc983fe482131")

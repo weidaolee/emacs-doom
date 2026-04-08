@@ -4,22 +4,20 @@
 #+since:    2.0.3 (#83)
 
 * Description :unfold:
-This module provides support for [[https://elixir-lang.org/][Elixir programming language]] via [[doom-package:alchemist]] or
-[[https://github.com/elixir-lsp/elixir-ls/][elixir-ls]].
+This module provides support for [[https://elixir-lang.org/][Elixir programming language]] via [[https://github.com/elixir-lsp/elixir-ls/][elixir-ls]].
 
 ** Maintainers
 /This module has no dedicated maintainers./ [[doom-contrib-maintainer:][Become a maintainer?]]
 
 ** Module flags
 - +lsp ::
-  Enable LSP support for ~elixir-mode~. Requires [[doom-module::tools lsp]] and a langserver
-  (supports [[https://github.com/elixir-lsp/elixir-ls/][elixir-ls]]).
+  Enable LSP support for ~elixir-mode~. Requires [[doom-module::tools lsp]] and a
+  langserver (supports [[https://github.com/elixir-lsp/elixir-ls/][elixir-ls]]).
 - +tree-sitter ::
   Leverages tree-sitter for better syntax highlighting and structural text
-  editing. Requires [[doom-module::tools tree-sitter]].
+  editing. Requires Emacs 30.1+ and [[doom-module::tools tree-sitter]].
 
 ** Packages
-- [[doom-package:alchemist]]
 - [[doom-package:elixir-mode]]
 - [[doom-package:exunit]]
 - [[doom-package:flycheck-credo]] if [[doom-module::checkers syntax]]
@@ -67,7 +65,7 @@ zypper install elixir
 
 * TODO Usage
 #+begin_quote
- 🔨 /This module's usage documentation is incomplete./ [[doom-contrib-module:][Complete it?]]
+ 󱌣 /This module's usage documentation is incomplete./ [[doom-contrib-module:][Complete it?]]
 #+end_quote
 
 - Code completion ([[doom-module::completion company]])
@@ -76,6 +74,7 @@ zypper install elixir
 - Phoenix support
 - ~iex~ integration ([[doom-module::tools eval]])
 - Syntax checking ([[doom-module::checkers syntax]], using [[doom-package:flycheck-credo]])
+- Formatting for elixir files provided by [[doom-module::editor format]].
 
 ** exunit-mode
 The exunit-mode prefix is [[kbd:][<localleader> t]]. Here is some examples:
@@ -90,7 +89,7 @@ The exunit-mode prefix is [[kbd:][<localleader> t]]. Here is some examples:
 
 * TODO Configuration
 #+begin_quote
- 🔨 This module has no configuration documentation yet. [[doom-contrib-module:][Write some?]]
+ 󱌣 This module has no configuration documentation yet. [[doom-contrib-module:][Write some?]]
 #+end_quote
 
 * Troubleshooting
@@ -101,5 +100,5 @@ The exunit-mode prefix is [[kbd:][<localleader> t]]. Here is some examples:
 
 * TODO Appendix
 #+begin_quote
- 🔨 This module has no appendix yet. [[doom-contrib-module:][Write one?]]
+ 󱌣 This module has no appendix yet. [[doom-contrib-module:][Write one?]]
 #+end_quote

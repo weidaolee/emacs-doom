@@ -8,19 +8,26 @@
              (modulep! :tools tree-sitter))
          "This module requires (:tools tree-sitter)")
 
-(if (not (or (executable-find "python")
-             (executable-find "python3")))
-    (error! "Couldn't find python in your PATH")
-  (unless (modulep! +lsp)
-    (unless (or (zerop (shell-command "python -c 'import setuptools'"))
-                (zerop (shell-command "python3 -c 'import setuptools'")))
-      (warn! "setuptools wasn't detected, which anaconda-mode requires"))))
+(assert! (or (not (modulep! +tree-sitter))
+             (fboundp 'python-ts-mode))
+         "Can't find `python-ts-mode'; Emacs 29.1+ is required")
+
+(assert! (not (and (modulep! +pyenv) (modulep! +uv)))
+         "The +pyenv and +uv flags cannot be used together")
+
+(unless (or (executable-find "python")
+            (executable-find "python3"))
+  (error! "Couldn't find python in your PATH"))
 
 (when (modulep! +pyenv)
   (if (not (executable-find "pyenv"))
       (warn! "Couldn't find pyenv in your PATH")
     (unless (split-string (shell-command-to-string "pyenv versions --bare") "\n" t)
       (warn! "No versions of python are available via pyenv, did you forget to install one?"))))
+
+(when (modulep! +uv)
+  (unless (executable-find "uv")
+    (warn! "Couldn't find uv in your PATH")))
 
 (when (modulep! +conda)
   (unless (executable-find "conda")

@@ -1,7 +1,8 @@
 ;; -*- no-byte-compile: t; -*-
 ;;; email/mu4e/packages.el
 
+(package! mu4e-compat
+  :recipe (:host github :repo "tecosaur/mu4e-compat")
+   :pin "a33345cb8ef83554f01510bbc8f5c7323713aa8d")
 (when (modulep! +org)
-  (package! org-msg :pin "7b1dfb96d558f6e5626e96d4f4a5150d55cb7eb2"))
-
-(package! mu4e-alert :pin "3c9af8c7994df0a1a4f0703552ea3beffb485ace")
+  (package! org-msg :pin "aa608b399586fb771ad37045a837f8286a0b6124"))

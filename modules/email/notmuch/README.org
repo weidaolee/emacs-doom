@@ -23,7 +23,7 @@ This module turns Emacs into an email client using [[doom-package:notmuch]].
 
 ** TODO Hacks
 #+begin_quote
- 🔨 This module's hacks haven't been documented yet. [[doom-contrib-module:][Document them?]]
+ 󱌣 This module's hacks haven't been documented yet. [[doom-contrib-module:][Document them?]]
 #+end_quote
 
 ** TODO Changelog
@@ -70,7 +70,7 @@ environment.systemPackages = with pkgs; [
 
 * TODO Usage
 #+begin_quote
- 🔨 /This module's usage documentation is incomplete./ [[doom-contrib-module:][Complete it?]]
+ 󱌣 /This module's usage documentation is incomplete./ [[doom-contrib-module:][Complete it?]]
 #+end_quote
 
 | Keymap          | Command            | Description                                   |
@@ -80,7 +80,7 @@ environment.systemPackages = with pkgs; [
 
 * TODO Configuration
 #+begin_quote
- 🔨 /This module's configuration documentation is incomplete./ [[doom-contrib-module:][Complete it?]]
+ 󱌣 /This module's configuration documentation is incomplete./ [[doom-contrib-module:][Complete it?]]
 #+end_quote
 
 ** Downloading your email
@@ -153,7 +153,7 @@ own backend:
 It is possible to change the =*notmuch-hello*= buffer if you want to.
 #+begin_src emacs-lisp
 ;; add to $DOOMDIR/config.el
-(after! notmuch
+(with-eval-after-load 'notmuch
   (setq notmuch-show-log nil
         notmuch-hello-sections `(notmuch-hello-insert-saved-searches
                                  notmuch-hello-insert-alltags)
@@ -189,7 +189,7 @@ you're used to sending, so here's some example configuration that turns those
 features off:
 #+begin_src emacs-lisp
 ;; add to $DOOMDIR/config.el
-(after! org-mime
+(with-eval-after-load 'org-mime
   (setq org-mime-export-options '(:section-numbers nil
                                   :with-author nil
                                   :with-toc nil)))
@@ -203,5 +203,5 @@ features off:
 
 * TODO Appendix
 #+begin_quote
- 🔨 This module has no appendix yet. [[doom-contrib-module:][Write one?]]
+ 󱌣 This module has no appendix yet. [[doom-contrib-module:][Write one?]]
 #+end_quote

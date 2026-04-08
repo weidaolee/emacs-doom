@@ -12,8 +12,10 @@ nimsuggest isn't installed."
       (when (and nimsuggest-path (file-executable-p nimsuggest-path))
         (nimsuggest-mode))))
 
-  (when IS-WINDOWS
-    ;; TODO File PR/report upstream (https://github.com/nim-lang/nim-mode)
+  (set-formatter! 'nmfmt '("nimpretty" filepath) :modes '(nim-mode))
+
+  (when (featurep :system 'windows)
+    ;; TODO: File PR/report upstream (https://github.com/nim-lang/nim-mode)
     (defadvice! +nim--suggest-get-temp-file-name-a (path)
       "Removes invalid characters from the temp file path, including the unicode
 character that colon is replaced with, which is known to cause issues on
@@ -34,6 +36,5 @@ windows."
 
 
 (use-package! flycheck-nim
-  :when (modulep! :checkers syntax)
+  :when (modulep! :checkers syntax -flymake)
   :after nim-mode)
-

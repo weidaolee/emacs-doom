@@ -1,10 +1,8 @@
 # -*- mode: snippet -*-
 # group: file templates
-# contributor: Henrik Lissner
+# contributor: Weidao Lee
 # --
 #include <iostream>
-
-using namespace std;
 
 int main(int argc, char *argv[]) {
     $0

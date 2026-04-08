@@ -14,6 +14,10 @@ This module provides syntax checking and error highlighting, powered by
 - +childframe ::
   Display errors/warnings in a [[https://www.gnu.org/software/emacs/manual/html_node/elisp/Child-Frames.html][child frame]] rather than an overlay or tooltip.
   *Requires GUI Emacs.*
+- +flymake :: Leverages the inbuilt [[doom-package:flymake]] for error and
+  diagnostics highlighting.
+- +icons :: Use unicode icons rather than ASCII prefixes in error tooltips or
+  childframes.
 
 ** Packages
 - [[doom-package:flycheck]]
@@ -23,6 +27,9 @@ This module provides syntax checking and error highlighting, powered by
 ** Hacks
 - If ~lsp-ui-mode~ is active, most of the aesthetic functionality of this module
   is turned off, as they show the same information.
+- If childframes are enabled, and the flycheck childframe is shown, it will be
+  hidden on the next user input (as well as the default behavior: to hide it the
+  next time the user is idle for ~flycheck-display-errors-delay~ seconds).
 
 ** TODO Changelog
 # This section will be machine generated. Don't edit it by hand.
@@ -38,7 +45,7 @@ find out if you're missing any dependencies.
 
 * TODO Usage
 #+begin_quote
- 🔨 /This module's usage documentation is incomplete./ [[doom-contrib-module:][Complete it?]]
+ 󱌣 /This module's usage documentation is incomplete./ [[doom-contrib-module:][Complete it?]]
 #+end_quote
 
 Most of flycheck's features are under [[kbd:][C-c !]], regardless of whether evil mode is
@@ -65,7 +72,7 @@ Evil Specific:
 
 * TODO Configuration
 #+begin_quote
- 🔨 This module has no configuration documentation yet. [[doom-contrib-module:][Write some?]]
+ 󱌣 This module has no configuration documentation yet. [[doom-contrib-module:][Write some?]]
 #+end_quote
 
 * Troubleshooting
@@ -79,5 +86,5 @@ Evil Specific:
 
 * TODO Appendix
 #+begin_quote
- 🔨 This module has no appendix yet. [[doom-contrib-module:][Write one?]]
+ 󱌣 This module has no appendix yet. [[doom-contrib-module:][Write one?]]
 #+end_quote

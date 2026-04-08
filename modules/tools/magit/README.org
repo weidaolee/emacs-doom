@@ -14,14 +14,14 @@ This module provides Magit, an interface to the Git version control system.
 ** Module flags
 - +forge ::
   Enable Forge; a porcelain for managing Github issues and PRs from within
-  Emacs. Will take a while on first run to build =emacsql-sqlite=.
+  Emacs. Will take a while on first run to build =emacsql-sqlite=. *Requires Emacs
+  29.1 or newer.*
 
 ** Packages
 - [[doom-package:evil-magit]] if [[doom-module::editor evil +everywhere]]
 - [[doom-package:forge]] if [[doom-module:+forge]]
 - [[doom-package:code-review]] if [[doom-module:+forge]]
 - [[doom-package:magit]]
-- [[doom-package:magit-todos]]
 
 ** Hacks
 - [[doom-package:magit]] has been modified to recognize =$XDG_CACHE_HOME/git/credential/socket=.
@@ -46,7 +46,7 @@ This module requires:
 
 * TODO Usage
 #+begin_quote
- 🔨 /This module's usage documentation is incomplete./ [[doom-contrib-module:][Complete it?]]
+ 󱌣 /This module's usage documentation is incomplete./ [[doom-contrib-module:][Complete it?]]
 #+end_quote
 
 Start magit with [[kbd:][<leader> g g]] (~M-x magit-status~).
@@ -55,14 +55,14 @@ If you are new to Magit, see the [[https://github.com/magit/magit#getting-starte
 
 * TODO Configuration
 #+begin_quote
- 🔨 /This module's configuration documentation is incomplete./ [[doom-contrib-module:][Complete it?]]
+ 󱌣 /This module's configuration documentation is incomplete./ [[doom-contrib-module:][Complete it?]]
 #+end_quote
 
 ** Enable Gravatars
 To enable gravatars when viewing commits:
 #+begin_src emacs-lisp
 ;; in $DOOMDIR/config.el
-(after! magit
+(with-eval-after-load 'magit
   (setq magit-revision-show-gravatars '("^Author:     " . "^Commit:     ")))
 #+end_src
 
@@ -72,7 +72,7 @@ This is so for [[https://magit.vc/manual/magit/Performance.html][performance rea
 /all/ visible hunks with:
 #+begin_src emacs-lisp
 ;; in $DOOMDIR/config.el
-(after! magit
+(with-eval-after-load 'magit
   (setq magit-diff-refine-hunk 'all))
 #+end_src
 
@@ -95,5 +95,5 @@ machine api.github.com login yourlogin^code-review password MYTOKENGOESHERE
 
 * TODO Appendix
 #+begin_quote
- 🔨 This module has no appendix yet. [[doom-contrib-module:][Write one?]]
+ 󱌣 This module has no appendix yet. [[doom-contrib-module:][Write one?]]
 #+end_quote

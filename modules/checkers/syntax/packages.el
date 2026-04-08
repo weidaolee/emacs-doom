@@ -1,9 +1,13 @@
 ;; -*- no-byte-compile: t; -*-
 ;;; checkers/syntax/packages.el
 
-(package! flycheck :pin "784f184cdd9f9cb4e3dbb997c09d93e954142842")
-(package! flycheck-popup-tip :pin "ef86aad907f27ca076859d8d9416f4f7727619c6")
-(when (modulep! +childframe)
-  (package! flycheck-posframe :pin "8f60c9bf124ab9597d681504a73fdf116a0bde12"))
+(unless (modulep! +flymake)
+  (package! flycheck :pin "5c24d1b732e86433f34ebf5ec7ca3c985edbc744")
+  (package! flycheck-popup-tip :pin "ef86aad907f27ca076859d8d9416f4f7727619c6")
+  (when (modulep! +childframe)
+    (package! flycheck-posframe :pin "19896b922c76a0f460bf3fe8d8ebc2f9ac9028d8")))
 
-;; TODO flymake?
+(when (modulep! +flymake)
+  (package! flymake-popon
+    :recipe (:host github :repo "doomelpa/flymake-popon")
+    :pin "99ea813346f3edef7220d8f4faeed2ec69af6060"))

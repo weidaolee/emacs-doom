@@ -1,0 +1,60 @@
+* Global CC Style
+#+begin_src elisp
+(cl-dolist (style c-style-alist)
+  (message (car style)))
+#+end_src
+
+#+begin_src elisp
+(c-add-style "default-cc-style"
+             '("k&r"
+               (indent-tabs-mode . nil)
+               (c-basic-offset . 4)
+               (c-offsets-alist
+                (innamespace . -)
+                (access-label . -))))
+
+(add-to-list 'c-default-style '(c++-mode . "default-cc-style"))
+(add-to-list 'c-default-style '(c-mode . "default-cc-style"))
+#+end_src
+* Include Headers as Default
+#+begin_src elisp
+((c++-mode . ((lsp-clients-clangd-args . ("-extra-arg=-include" "-extra-arg=./include/my_global.h")))))
+#+end_src
+* Auto Fromat on Save
+Add the following code to ~.dir-lcoals.el~:
+#+begin_src elisp
+((c-mode . ((eval . (add-hook 'before-save-hook #'clang-format-buffer nil t))))
+ (c++-mode . ((eval . (add-hook 'before-save-hook #'clang-format-buffer nil t)))))
+
+((c-mode . ((c-basic-offset . 4)
+            (c-offsets-alist . ((access-label . -4)
+                                (inclass . +)
+                                (namespace-open . 0)
+                                (namespace-close . 0)
+                                (innamespace . 0)
+                                (case-label . 0)
+                                (statement-case-open . +)
+                                (statement-case-intro . +) ; for case labels
+                                (member-init-intro . ++))) ; for constructor initializer lists
+            (c-hanging-braces-alist . ((substatement-open after)
+                                       (brace-list-open)))))
+
+ ((c++-mode . ((c-basic-offset . 4)
+               (c-offsets-alist . ((access-label . -4)
+                                   (inclass . +)
+                                   (namespace-open . 0)
+                                   (namespace-close . 0)
+                                   (innamespace . 0)
+                                   (case-label . 0)
+                                   (statement-case-open . +)
+                                   (statement-case-intro . +) ; for case labels
+                                   (member-init-intro . ++))) ; for constructor initializer lists
+               (c-hanging-braces-alist . ((substatement-open after)
+                                          (brace-list-open)))))
+#+end_src
+* Download clangd
+Download [[https://github.com/clangd/clangd/releases][clangd-linux-xx.x.x.zip]]
+* Upgrade Clang format version
+1. Uninstall ~clang-format~
+2. Install ~clang-format-xx~
+3. ~ln -s /usr/bin/clang-format /usr/bin/clang-format-xx~

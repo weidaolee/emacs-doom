@@ -11,8 +11,8 @@ If 'strict, the module does a normal swap and 'c' bindings go to 'h', 'r' bindin
 In all cases, 'h' functions go to 'c' and 'l' ones go to 'r' so the navigation keys still feel vim-like.")
 
 ;; Highlight non breaking spaces as error in prog modes only
-;; REVIEW `nobreak-char-display' is defined in xdisp.c; will that work in non-X
-;;        builds? From early observations in sway+pgtk, it does not.
+;; REVIEW: `nobreak-char-display' is defined in xdisp.c; will that work in non-X
+;;   builds? From early observations in sway+pgtk, it does not.
 (setq nobreak-char-display t)
 (set-face-attribute 'nobreak-space nil :underline t)
 
@@ -20,8 +20,8 @@ In all cases, 'h' functions go to 'c' and 'l' ones go to 'r' so the navigation k
 ;;
 ;;; Initializers
 
-;; TODO Separate each package into their own hook, so users can
-;;      enable/disable/add their own per-package remappings.
+;; TODO: Separate each package into their own hook, so users can
+;;   enable/disable/add their own per-package remappings.
 
 (defun +layout-remap-keys-for-bepo-h ()
   (setq avy-keys '(?a ?u ?i ?e ?, ?c ?t ?s ?r ?n)
@@ -54,8 +54,8 @@ In all cases, 'h' functions go to 'c' and 'l' ones go to 'r' so the navigation k
          :desc "Jump to documentation"     "S"  #'+lookup/documentation)
         (:prefix-map ("g" . "git")
          (:when (modulep! :ui vc-gutter)
-          :desc "Jump to next hunk"        ")"  #'git-gutter:next-hunk
-          :desc "Jump to previous hunk"    "("  #'git-gutter:previous-hunk))
+          :desc "Jump to next hunk"        ")"  #'+vc-gutter/next-hunk
+          :desc "Jump to previous hunk"    "("  #'+vc-gutter/previous-hunk))
         (:prefix-map ("p" . "project")
          :desc "Browse other project"      "»"  #'doom/browse-in-other-project)))
 
@@ -149,7 +149,7 @@ In all cases, 'h' functions go to 'c' and 'l' ones go to 'r' so the navigation k
       "»" ">"))
   (after! lsp-ui
     (+layout-bepo-rotate-ts-bare-keymap '(lsp-ui-peek-mode-map)))
-  (after! org
+  (after! org-capture
     (defadvice! doom-bepo--org-completing-read (&rest args)
       "Completing-read with SPACE being a normal character, and C-c mapping left alone."
       :override #'org-completing-read

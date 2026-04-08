@@ -17,7 +17,7 @@
 ;;;###autoload
 (defun +spell-init-flyspell-predicate-h ()
   "TODO"
-  (when-let (pred (assq major-mode +spell--flyspell-predicate-alist))
+  (when-let* ((pred (assq major-mode +spell--flyspell-predicate-alist)))
     (setq-local flyspell-generic-check-word-predicate (cdr pred))))
 
 ;;;###autoload
@@ -82,5 +82,5 @@ or session. Otherwise, the addition is permanent."
   (call-interactively
    (if (featurep 'evil)
        #'evil-prev-flyspell-error
-     ;; TODO Implement this
+     ;; TODO: Implement this
      (user-error "Not supported"))))

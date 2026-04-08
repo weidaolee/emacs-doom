@@ -1,28 +1,28 @@
 ;; -*- no-byte-compile: t; -*-
 ;;; completion/vertico/packages.el
 
-(package! vertico
-  :recipe (:host github :repo "minad/vertico"
-           :files ("*.el" "extensions/*.el"))
-  :pin "6f22ff129886a6b9292212f9897c65f919340aca")
+(package! vertico :pin "93f15873d7d6244d72202c5dd7724a030a2d5b9a")
 
-(package! orderless :pin "d09aab37951b25627b96660f429eaec969d16d8a")
+(package! orderless :pin "3a2a32181f7a5bd7b633e40d89de771a5dd88cc7")
 
-(package! consult :pin "ffaaf6da909dc9ff766e5a5f16eb265635aa6149")
-(package! consult-dir :pin "ed8f0874d26f10f5c5b181ab9f2cf4107df8a0eb")
-(when (modulep! :checkers syntax)
-  (package! consult-flycheck :pin "c371996c571b7139ef4d9a8db142bf37a7ee826b"))
-(package! embark :pin "5497a19eef92e4b82e2dcbcd26eb671227240c45")
-(package! embark-consult :pin "5497a19eef92e4b82e2dcbcd26eb671227240c45")
+(package! consult :pin "d1d39d52151a10f7ca29aa291886e99534cc94db")
+(package! consult-dir :pin "1497b46d6f48da2d884296a1297e5ace1e050eb5")
+(when (modulep! :checkers syntax -flymake)
+  (package! consult-flycheck :pin "9fe96c4b75c8566170ad41a04c3849d2e2606104"))
+(package! embark :pin "e0238889b1c946514fd967d21d70599af9c4e887")
+(package! embark-consult :pin "e0238889b1c946514fd967d21d70599af9c4e887")
 
-(package! marginalia :pin "ccf573e2145d9deb9d734432351eefc87fc1bc16")
+(package! marginalia :pin "142e4da1bd76dc5bdbbfd15532571b8a271e680e")
 
-(package! wgrep :pin "edf768732a56840db6879706b64c5773c316d619")
+(package! wgrep :pin "49f09ab9b706d2312cab1199e1eeb1bcd3f27f6f")
 
 (when (modulep! +icons)
-  (package! all-the-icons-completion :pin "4da28584a1b36b222e0e78d46fd8d46bbd9116c7"))
+  (package! nerd-icons-completion :pin "d09ea987ed3d2cc64137234f27851594050e2b64"))
 
 (when (modulep! +childframe)
   (package! vertico-posframe
     :recipe (:host github :repo "tumashu/vertico-posframe")
-    :pin "f57b170b435ecb73027de00783c58e7cb46019a5"))
+    :pin "d6e06a4f1b34d24cc0ca6ec69d2d6c965191b23e"))
+
+(when (modulep! :editor snippets)
+  (package! consult-yasnippet :pin "a3482dfbdcbe487ba5ff934a1bb6047066ff2194"))

@@ -3,44 +3,47 @@
 #+created:  July 26, 2020
 #+since:    21.12.0
 
-#+begin_quote
- 🔨 This module has been scheduled for a rewrite. Its documentation will remain
-    incomplete and edge cases left unpatched in the meantime. A preview of this
-    rewrite can be found [[https://github.com/hlissner/doom-emacs-private/tree/master/modules/editor/format][in my private config]].
-#+end_quote
-
 * Description :unfold:
-This module integrates code formatters into Emacs. Here are some of the
-formatters that it currently supports:
+Code style is something that's hotly debated since the beginning of time.
 
-#+begin_quote
-asmfmt, black, brittany, cabal-fmt, clang-format, cmake-format, dartfmt, dfmt,
-dhall format, dockfmt, elm-format, emacs, fish_indent, fprettify, gleam format,
-gofmt, iStyle, jsonnetfmt, ktlint, latexindent, ledger-mode, lua-fmt, mix
-format, nixfmt, node-cljfmt, ocp-indent, perltidy, prettier, purty, rufo,
-rustfmt, scalafmt, script shfmt, snakefmt, sqlformat, styler, swiftformat, tidy
-#+end_quote
+Tabs or spaces?
+2-width or 4-width indentation?
+
+Which is right? Doom doesn't care, but we will try and make it easy for you to
+format code within the safety of Emacs.
+
+At present, the module wraps [[https://github.com/radian-software/apheleia/][apheleia]], which includes some more detail on the
+internals of the package; but the long and short of it is on-save your code will
+be formatted and returned to the buffer using
+[[https://tools.ietf.org/doc/tcllib/html/rcs.html#section4][RCS patching]].
 
 ** Maintainers
-/This module has no dedicated maintainers./ [[doom-contrib-maintainer:][Become a maintainer?]]
+- [[doom-user:][@elken]]
+
+[[doom-contrib-maintainer:][Become a maintainer?]]
 
 ** Module flags
 - +onsave ::
   Enable reformatting of a buffer when it is saved. See
-  [[var:+format-on-save-enabled-modes]] to control what major modes to (or not to)
-  format on save.
+  [[var:+format-on-save-disabled-modes]] to disable format on save for certain
+  major modes.
+- +lsp ::
+  Use ~lsp-mode~'s or ~eglot~'s formatters, instead of Apheleia's, if the active
+  client has the capabilities.
 
 ** Packages
-- [[doom-package:format-all]]
+- [[doom-package:apheleia]]
 
 ** Hacks
-- format-all has been heavily modified to suit Doom's goals for this module:
-  - Reformatted text is applied to the buffer by RCS patch, as to reduce its
-    affect on cursor position.
-  - Adds partial formatting, i.e. you can now reformat a subset of the buffer.
-  - Adds the ability to use any arbitrary formatter on the current buffer if you
-    pass the universal argument to [[fn:+format/buffer]] or [[fn:+format/region]] (i.e.
-    removes the major-mode lock on formatters).
+- Apheleia -- and many formatters -- don't support partial formatting (i.e. the
+  opposite of whole-file formatting), so a couple of hacks are in place to
+  /force/ them to support this when you run [[fn:+format/region]]. This works by
+  copying the selection into a fake, standalone file and operating on that. This
+  works in many cases, but makes no guarantees that it will work with all
+  formatters. Lisp, Scheme, Python, or similarly indentation-based languages are
+  most likely to see strange results.
+- [[fn:save-buffer]] is advised to suppress format-on-save behavior if passed the
+  universal argument (e.g. [[kbd:SPC u SPC b s]] or [[kbd:C-u C-x C-s]]).
 
 ** TODO Changelog
 # This section will be machine generated. Don't edit it by hand.
@@ -51,130 +54,151 @@ rustfmt, scalafmt, script shfmt, snakefmt, sqlformat, styler, swiftformat, tidy
 
 This module has no direct requirements, but each language will need one of their
 supported formatter programs in order for this to work. In their absence,
-[[doom-package:format-all]] will fail silently.
+[[doom-package:apheleia]] will fail silently.
 
-Supported formatters:
-- Angular/Vue (prettier)
-- Assembly (asmfmt)
-- Bazel Starlark (buildifier)
-- BibTeX (emacs)
-- C/C++/Objective-C (clang-format)
-- Cabal (cabal-fmt)
-- Clojure/ClojureScript (node-cljfmt)
-- CMake (cmake-format)
-- Crystal (crystal tool format)
-- CSS/Less/SCSS (prettier)
-- D (dfmt)
-- Dart (dartfmt)
-- Dhall (dhall format)
-- Dockerfile (dockfmt)
-- Elixir (mix format)
-- Elm (elm-format)
-- Emacs Lisp (emacs)
-- Fish Shell (fish_indent)
-- Fortran 90 (fprettify)
-- Gleam (gleam format)
-- Go (gofmt)
-- GraphQL (prettier)
-- Haskell (brittany)
-- HTML/XHTML/XML (tidy)
-- Java (clang-format)
-- JavaScript/JSON/JSX (prettier)
-- Jsonnet (jsonnetfmt)
-- Kotlin (ktlint)
-- LaTeX (latexindent)
-- Ledger (ledger-mode)
-- Lua (lua-fmt)
-- Markdown (prettier)
-- Nix (nixfmt)
-- OCaml (ocp-indent)
-- Perl (perltidy)
-- PHP (prettier plugin-php)
-- Protocol Buffers (clang-format)
-- PureScript (purty)
-- Python (black)
-- R (styler)
-- Ruby (rufo)
-- Rust (rustfmt)
-- Scala (scalafmt)
-- Shell script (shfmt)
-- Snakemake (snakefmt)
-- Solidity (prettier-plugin-solidity)
-- SQL (sqlformat)
-- Swift (swiftformat)
-- Terraform (terraform fmt)
-- TOML (prettier-plugin-toml)
-- TypeScript/TSX (prettier)
-- Verilog (iStyle)
-- YAML (prettier)
+To see if a particular mode has a configured formatter, check for the mode in
+[[var:apheleia-mode-alist]] which corresponds to the list of formatters defined in
+[[var:apheleia-formatters]]
 
-* TODO Usage
-#+begin_quote
- 🔨 This module has no usage documentation yet. [[doom-contrib-module:][Write some?]]
-#+end_quote
+* Usage
+** With +onsave
+When this flag is enabled, you shouldn't need to do anything other than write
+code and save it.
 
-* TODO Configuration
-#+begin_quote
- 🔨 /This module's configuration documentation is incomplete./ [[doom-contrib-module:][Complete it?]]
-#+end_quote
+** Without +onsave
+Without the flag, formatting will only occur when either =+format/buffer=
+or =apheleia-format-buffer= is called. The difference between them is
+=+format/buffer= will use a LSP server if configured and available.
 
-** Automatic reformatting when saving buffers
-There are two ways to achieve this. Either through the =+onsave= flag, or by
-adding ~format-all-mode~ to the hook of each major mode you want this behavior
-enabled in.
+* Configuration
+Detailed configuration can be found [[https://github.com/radian-software/apheleia/#user-guide][upstream]], but for most purposes here we
+provide a simple macro that looks like the below:
 
-If you choose the former, what modes it applies to can be changed by modifying
-~+format-on-save-enabled-modes~, which contains a list of major modes. If the
-first item in the list is the symbol ~not~, the list is negated. This is its
-default value:
 #+begin_src emacs-lisp
-(setq +format-on-save-enabled-modes
-      '(not emacs-lisp-mode  ; elisp's mechanisms are good enough
-            sql-mode         ; sqlformat is currently broken
-            tex-mode         ; latexindent is broken
-            latex-mode))
+(set-formatter! 'unique-name '("command" "line" "here") :modes '(name-of-major-mode))
 #+end_src
 
-If you want to format code when you save a buffer, but want more granular
-control over which major modes this behavior is enabled in, there is an
-alternative. Make sure [[doom-module:+onsave]] is disabled before you try this:
+If you're trying to override a formatter that has previously been defined by
+Doom, you will need to ensure that the call in your config is contained within
+an =after!= form, eg below to override Clojure's with =zprint=:
+
 #+begin_src emacs-lisp
-(add-hook 'python-mode-hook #'format-all-mode)
-(add-hook 'js2-mode-hook #'format-all-mode)
+(with-eval-after-load 'clojure-mode
+  (set-formatter! 'zprint '("zprint" "-") :modes '(clojure-mode)))
 #+end_src
 
-** Disabling the LSP formatter
-If you are in a buffer with ~lsp-mode~ enabled and a server that supports
-=textDocument/formatting=, it will be used instead of [[doom-package:format-all]]'s formatter.
+There are a few bonus symbols that apheleia uses (for example =npx= will be
+replaced by a correct path to npx) which are all documented in the link above.
 
-+ To disable this behavior universally use: ~(setq +format-with-lsp nil)~
-+ To disable this behavior in one mode: ~(setq-hook! 'python-mode-hook
-  +format-with-lsp nil)~
+** Selecting or disabling a specific formatter
+:PROPERTIES:
+:ID:       ab7008f6-0d6e-4465-9980-adee2055aa16
+:END:
+Doom exposes a couple variables and functions to help you configure this module's behavior:
 
-** TODO Defining your own formatters
-See the ~set-formatter!~ function.
+- [[var:+format-with]] :: What formatter(s) to use for the current buffer.
+- [[var:+format-inhibit]] :: If non-nil, formatting-on-save behavior is disabled,
+  regardless of ~apehelia-global-mode~.
+- [[var:+format-on-save-disabled-modes]] :: A list of major modes to disable
+  format-on-save behavior in. These buffers can still be formatted by calling
+  the ~+format/buffer~ or ~+format/region~ commands, manually.
+- [[fn:set-formatter!]] :: A helper function for configuring registered formatters
+  (or adding some of your own) and assigning them to major modes.
+ 
+Here are some ways to use them:
 
-** TODO Selecting a specific formatter for a particular buffer
-Set the buffer-local variable ~+format-with~ to the name of the formatter to
-use. e.g.
-#+begin_src emacs-lisp
-(setq-hook! 'python-mode-hook +format-with 'html-tidy)
+1. In a project's =.dir-locals.el= file:
+   #+begin_src emacs-lisp
+   ((js2-mode    . (+format-with . lsp))
+    (python-mode . (+format-with . (isort black)))
 
-;; Or set it to `:none' to disable formatting
-(setq-hook! 'python-mode-hook +format-with :none)
-#+end_src
+    ;; If +format-inhibit is non-nil, formatting-on-save behavior will be
+    ;; disabled, regardless of apheleia-global-mode.
+    (rustic-mode . (+format-inhibit . t)))
+   #+end_src
+
+2. With a file-local variable. E.g. At the top of a file:
+   #+begin_src js
+   // -*- +format-with: prettier -*-
+   #+end_src
+
+   Or at the bottom of a file
+   #+begin_src python
+   # Local Variables:
+   # +format-with: (isort black)
+   # End:
+   #+end_src
+
+3. From your Doom configuration:
+   #+begin_src emacs-lisp
+   ;;; add to $DOOMDIR/config.el
+   (setq-hook! 'python-mode-hook +format-with 'black)
+
+   ;; Or set it to `nil' to fallback to Apheleia's default
+   (setq-hook! 'python-mode-hook +format-with nil)
+
+   ;; Disable format-on-save behavior in Emacs Lisp buffers
+   (setq-hook! 'emacs-lisp-mode-hook +format-inhibit t)
+
+   ;; To permenantly disable a formatter:
+   (with-eval-after-load 'csharp-mode
+     (set-formatter! 'csharpier nil))
+
+   ;; To define new formatters:
+   ;; From modules/tools/docker/config.el:
+   (with-eval-after-load 'dockerfile-mode
+     (set-formatter! 'dockfmt '("dockfmt" "fmt" filepath) :modes '(dockerfile-mode)))
+
+   ;; From modules/lang/sh/config.el:
+   (with-eval-after-load 'sh-script
+     (set-formatter! 'shfmt '("shfmt" "-ci"
+                              (unless indent-tabs-mode
+                                (list "-i" (number-to-string tab-width))))))
+
+  (setq +format-on-save-disabled-modes
+        '(emacs-lisp-mode  ; elisp's mechanisms are good enough
+          sql-mode         ; sqlformat is currently broken
+          tex-mode         ; latexindent is broken
+          latex-mode))
+   #+end_src
 
 Formatters are referred to by the name they were defined with. They can be
-looked up in the ~format-all-mode-table~ hash table or in format-all's [[https://github.com/lassik/emacs-format-all-the-code/blob/master/format-all.el#L512][source
-code]].
+looked up in the ~apheleia-mode-alist~ hash table (with [[kbd:<help> v]]).
+
+** One-off ~save-buffer~ without auto-formatting
+To save the buffer without formatting just once, pass the universal argument to
+~save-buffer~ ([[kbd:][SPC u]] for evil users, [[kbd:][C-u]] for non-evil users). For example:
+
+- Evil: [[kbd:][SPC u SPC f s]]
+- Without evil: [[kbd:][C-u C-x C-s]]
+
+** Using ~lsp-mode~ or ~eglot~'s formatter
+If you have a buffer open with [[doom-package:lsp-mode]] or [[doom-package:eglot]]
+enabled, and the running server supports =textDocument/formatting= or
+=textDocument/rangeFormatting=, it can be used instead of
+[[doom-package:apheleia]]'s (or Doom's) default formatters by enabling this module
+with its =+lsp= flag or manually activating the [[fn:+format-with-lsp-mode]] minor
+mode (though it's a better idea to use [[fn:+format-with-lsp-toggle-h]] if you're
+looking for a function to use with mode hooks; this function will respect
+pre-existing modifications to [[var:+format-with]]).
+
+To enable this formatter selectively, see the next section.
 
 * Troubleshooting
-/There are no known problems with this module./ [[doom-report:][Report one?]]
+There are a few fail-safes [[doom-package:apheleia]] has to prevent accidental code
+wipe, included silently failing if the command errors or doesn't exist. Check
+that the command you've specified runs fine in a terminal first before reporting
+issues.
+
+If any errors are reported from the command, run =apheleia-goto-error= to jump
+to the error buffer and handle any problems raised.
+
+Any issues specific to Apheleia should most often be reported upstream [[https://github.com/radian-software/apheleia/issues][here]].
 
 * Frequently asked questions
 /This module has no FAQs yet./ [[doom-suggest-faq:][Ask one?]]
 
 * TODO Appendix
 #+begin_quote
- 🔨 This module has no appendix yet. [[doom-contrib-module:][Write one?]]
+ 󱌣 This module has no appendix yet. [[doom-contrib-module:][Write one?]]
 #+end_quote

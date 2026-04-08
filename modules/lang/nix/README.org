@@ -19,15 +19,20 @@ Includes:
 [[doom-contrib-maintainer:][Become a maintainer?]]
 
 ** Module flags
+- +lsp ::
+  Enable an LSP hook for ~nix-mode~. Requires [[doom-module::tools lsp]] and a
+  language server (one of either ~nil~ or ~rnix-lsp~).
 - +tree-sitter ::
   Leverages tree-sitter for better syntax highlighting and structural text
-  editing. Requires [[doom-module::tools tree-sitter]].
+  editing. Requires Emacs 29.1+ and [[doom-module::tools tree-sitter]].
 
 ** Packages
 - [[doom-package:company-nixos-options]] if [[doom-module::completion company]]
 - [[doom-package:helm-nixos-options]] if [[doom-module::completion helm]]
 - [[doom-package:nix-mode]]
+- [[doom-package:nix-ts-mode]] if [[doom-module:+tree-sitter]]
 - [[doom-package:nix-update]]
+- [[doom-package:nixos-options]]
 
 ** Hacks
 /No hacks documented for this module./
@@ -50,7 +55,7 @@ This module requires:
 
 * TODO Usage
 #+begin_quote
- 🔨 /This module's usage documentation is incomplete./ [[doom-contrib-module:][Complete it?]]
+ 󱌣 /This module's usage documentation is incomplete./ [[doom-contrib-module:][Complete it?]]
 #+end_quote
 
 ** Keybindings
@@ -66,7 +71,7 @@ This module requires:
 
 * TODO Configuration
 #+begin_quote
- 🔨 This module has no configuration documentation yet. [[doom-contrib-module:][Write some?]]
+ 󱌣 This module has no configuration documentation yet. [[doom-contrib-module:][Write some?]]
 #+end_quote
 
 * Troubleshooting
@@ -77,5 +82,5 @@ This module requires:
 
 * TODO Appendix
 #+begin_quote
- 🔨 This module has no appendix yet. [[doom-contrib-module:][Write one?]]
+ 󱌣 This module has no appendix yet. [[doom-contrib-module:][Write one?]]
 #+end_quote

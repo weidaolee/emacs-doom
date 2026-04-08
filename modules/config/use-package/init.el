@@ -24,14 +24,14 @@
 ;; packages with package.el, by copying over old `use-package' declarations with
 ;; an :ensure t property. Doom doesn't use package.el, so this will throw an
 ;; error that will confuse beginners, so we disable `:ensure'.
-(setq use-package-ensure-function
-      (lambda (name &rest _)
-        (message "Ignoring ':ensure t' in '%s' config" name)))
-;; ...On the other hand, if the user has loaded `package', then we should assume
-;; they know what they're doing and restore the old behavior:
-(add-transient-hook! 'package-initialize
-  (when (eq use-package-ensure-function #'ignore)
-    (setq use-package-ensure-function #'use-package-ensure-elpa)))
+(defun +use-package--ignore-ensure-maybe-fn (name &rest args)
+  ;; ...On the other hand, if the user has loaded `package', then we should
+  ;; assume they know what they're doing and restore the old behavior:
+  (if (bound-and-true-p package--activated)
+      (apply #'use-package-ensure-elpa name args)
+    (doom-log "Ignoring ':ensure t' in '%s' config" name)
+    (not (memq name doom-disabled-packages))))
+(setq use-package-ensure-function #'+use-package--ignore-ensure-maybe-fn)
 
 (with-eval-after-load 'use-package-core
   ;; `use-package' adds syntax highlighting for the `use-package' macro, but
@@ -52,9 +52,9 @@
   (defun use-package-handler/:magic-minor (name _ arg rest state)
     (use-package-handle-mode name 'auto-minor-mode-magic-alist arg rest state))
 
-  ;; HACK Fix `:load-path' so it resolves relative paths to the containing file,
-  ;;      rather than `user-emacs-directory'. This is a done as a convenience
-  ;;      for users, wanting to specify a local directory.
+  ;; HACK: Fix `:load-path' so it resolves relative paths to the containing
+  ;;   file, rather than `user-emacs-directory'. This is a done as a convenience
+  ;;   for users, wanting to specify a local directory.
   (defadvice! doom--resolve-load-path-from-containg-file-a (fn label arg &optional recursed)
     "Resolve :load-path from the current directory."
     :around #'use-package-normalize-paths
@@ -105,11 +105,11 @@
                          (require ',name))
                      ((debug error)
                       (message "Failed to load deferred package %s: %s" ',name e)))
-                   (when-let (deferral-list (assq ',name doom--deferred-packages-alist))
+                   (when-let* ((deferral-list (assq ',name doom--deferred-packages-alist)))
                      (dolist (hook (cdr deferral-list))
                        (advice-remove hook #',fn)
                        (remove-hook hook #',fn))
-                     (delq! deferral-list doom--deferred-packages-alist)
+                     (cl-callf2 delq deferral-list doom--deferred-packages-alist)
                      (unintern ',fn nil)))))
          (let (forms)
            (dolist (hook hooks forms)

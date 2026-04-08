@@ -1,89 +1,130 @@
 ;;; editor/format/config.el -*- lexical-binding: t; -*-
 
-(defvar +format-on-save-enabled-modes
-  '(not emacs-lisp-mode    ; elisp's mechanisms are good enough
-        sql-mode           ; sqlformat is currently broken
-        tex-mode           ; latexindent is broken
-        latex-mode
-        org-msg-edit-mode) ; doesn't need a formatter
-  "A list of major modes in which to reformat the buffer upon saving.
+(defcustom +format-on-save-disabled-modes
+  '(sql-mode           ; sqlformat is currently broken
+    tex-mode           ; latexindent is broken
+    latex-mode
+    LaTeX-mode
+    org-msg-edit-mode) ; doesn't need a formatter
+  "A list of major modes in which to not reformat the buffer upon saving.
 
-If this list begins with `not', then it negates the list.
-If it is `t', it is enabled in all modes.
-If nil, it is disabled in all modes, the same as if the +onsave flag wasn't
+If it is t, it is disabled in all modes, the same as if the +onsave flag wasn't
   used at all.
+If nil, formatting is enabled in all modes."
+  :type '(repeat symbol))
 
-Irrelevant if you do not have the +onsave flag enabled for this module.")
-
-(defvar +format-preserve-indentation t
-  "If non-nil, the leading indentation is preserved when formatting the whole
-buffer. This is particularly useful for partials.
-
-Indentation is always preserved when formatting regions.")
-
-(defvar-local +format-with nil
-  "Set this to explicitly use a certain formatter for the current buffer.")
-
-(defvar +format-with-lsp t
-  "If non-nil, format with LSP formatter if it's available.
-
-This can be set buffer-locally with `setq-hook!' to disable LSP formatting in
-select buffers.")
+(defvaralias '+format-with 'apheleia-formatter)
+(defvaralias '+format-inhibit 'apheleia-inhibit)
 
 
 ;;
 ;;; Bootstrap
 
-(add-to-list 'doom-debug-variables 'format-all-debug)
+(use-package! apheleia
+  :defer t
+  :init
+  (when (modulep! +onsave)
+    (add-hook 'doom-first-file-hook #'apheleia-global-mode)
+    ;; apheleia autoloads `apheleia-inhibit-functions' so it will be immediately
+    ;; available to mutate early.
+    (add-hook! 'apheleia-inhibit-functions
+      (defun +format-maybe-inhibit-h ()
+        "Check if formatting should be disabled for current buffer.
+This is controlled by `+format-on-save-disabled-modes'."
+        (or (eq major-mode 'fundamental-mode)
+            (string-blank-p (buffer-name))
+            (eq +format-on-save-disabled-modes t)
+            (not (null (memq major-mode +format-on-save-disabled-modes)))))))
 
-(defun +format-enable-on-save-maybe-h ()
-  "Enable formatting on save in certain major modes.
+  ;; Use the formatter provided by lsp-mode and eglot, if available.
+  (when (modulep! +lsp)
+    (add-hook 'eglot-managed-mode-hook #'+format-with-lsp-toggle-h)
+    (add-hook 'lsp-managed-mode-hook #'+format-with-lsp-toggle-h))
 
-This is controlled by `+format-on-save-enabled-modes'."
-  (or (cond ((eq major-mode 'fundamental-mode))
-            ((string-prefix-p " " (buffer-name)))
-            ((and (booleanp +format-on-save-enabled-modes)
-                  (not +format-on-save-enabled-modes)))
-            ((and (listp +format-on-save-enabled-modes)
-                  (if (eq (car +format-on-save-enabled-modes) 'not)
-                      (memq major-mode (cdr +format-on-save-enabled-modes))
-                    (not (memq major-mode +format-on-save-enabled-modes)))))
-            ((not (require 'format-all nil t))))
-      (format-all-mode +1)))
+  :config
+  (set-debug-var! 'apheleia-log-only-errors nil)
+  (set-debug-var! 'apheleia-log-debug-info t 2)
 
-(when (modulep! +onsave)
-  (add-hook 'after-change-major-mode-hook #'+format-enable-on-save-maybe-h))
+  ;; UX: Use prefix-arg on `save-buffer' or `basic-save-buffer' to inhibit
+  ;;   format-on-save behavior.
+  (define-key apheleia-mode-map [remap basic-save-buffer] #'+format/save-buffer)
+
+  ;; HACK: Apheleia suppresses notifications that the current buffer has
+  ;;   changed, so plugins that listen for them need to be manually informed:
+  (add-hook!
+   'apheleia-post-format-hook
+   (defun +format--update-web-mode-h ()
+     (when (eq major-mode 'web-mode)
+       (setq web-mode-fontification-off nil)
+       (when (and web-mode-scan-beg web-mode-scan-end global-font-lock-mode)
+         (save-excursion
+           (font-lock-fontify-region web-mode-scan-beg web-mode-scan-end)))))
+   (defun +format--update-vc-gutter-h ()
+     (when (fboundp '+vc-gutter-update-h)
+       (+vc-gutter-update-h))))
 
 
-;;
-;;; Hacks
+  ;;
+  ;; Custom formatters
 
-;; Allow a specific formatter to be used by setting `+format-with', either
-;; buffer-locally or let-bound.
-(advice-add #'format-all--probe :around #'+format-probe-a)
+  ;; Apheleia already has a definition for shfmt, but doesn't assign it to any
+  ;; major modes, so...
+  (add-to-list 'apheleia-mode-alist '(sh-mode . shfmt))
 
-;; Doom uses a modded `format-all-buffer', which
-;;   1. Enables partial reformatting (while preserving leading indentation),
-;;   2. Applies changes via RCS patch, line by line, to protect buffer markers
-;;      and avoid any jarring cursor+window scrolling.
-(advice-add #'format-all-buffer--with :override #'+format-buffer-a)
+  ;; A psuedo-formatter that dispatches to the appropriate LSP client (via
+  ;; `lsp-mode' or `eglot') that is capable of formatting. Without +lsp, users
+  ;; must manually set `+format-with' to `lsp' to use it, or activate
+  ;; `+format-with-lsp-mode' in the appropriate modes.
+  (add-to-list 'apheleia-formatters '(lsp . +format-lsp-buffer))
 
-;; format-all-mode "helpfully" raises an error when it doesn't know how to
-;; format a buffer.
-(add-to-list 'debug-ignored-errors "^Don't know how to format ")
+  ;; Use clang-format for cuda and protobuf files.
+  (add-to-list 'apheleia-mode-alist '(cuda-mode . clang-format))
+  (add-to-list 'apheleia-mode-alist '(cuda-ts-mode . clang-format))
+  (add-to-list 'apheleia-mode-alist '(protobuf-mode . clang-format))
+  (add-to-list 'apheleia-formatters-mode-extension-assoc '(cuda-mode . ".cu"))
+  (add-to-list 'apheleia-formatters-mode-extension-assoc '(cuda-ts-mode . ".cu"))
+  (add-to-list 'apheleia-formatters-mode-extension-assoc '(glsl-ts-mode . ".glsl"))
+  (add-to-list 'apheleia-formatters-mode-extension-assoc '(protobuf-mode . ".proto"))
 
-;; Don't pop up imposing warnings about missing formatters, but still log it in
-;; to *Messages*.
-(defadvice! +format--all-buffer-from-hook-a (fn &rest args)
-  :around #'format-all-buffer--from-hook
-  (letf! (defun format-all-buffer--with (formatter mode-result)
-           (when (or (eq formatter 'lsp)
-                     (eq formatter 'eglot)
-                     (condition-case-unless-debug e
-                         (format-all--formatter-executable formatter)
-                       (error
-                        (message "Warning: cannot reformat buffer because %S isn't installed"
-                                 (gethash formatter format-all--executable-table))
-                        nil)))
-             (funcall format-all-buffer--with formatter mode-result)))
-    (apply fn args)))
+  ;; Apheleia's default clang-format config doesn't respect `c-basic-offset', so
+  ;; force it to in the absence of a .clang-format file.
+  (setf (alist-get 'clang-format apheleia-formatters)
+        `("clang-format"
+          "-assume-filename"
+          (or (apheleia-formatters-local-buffer-file-name)
+              (apheleia-formatters-mode-extension)
+              ".c")
+          (when apheleia-formatters-respect-indent-level
+            (unless (locate-dominating-file default-directory ".clang-format")
+              (format "--style={IndentWidth: %d}" c-basic-offset)))))
+
+  ;; Apheleia's default config for prettier passes an explicit --tab-width N to
+  ;; all prettier formatters, respecting your indent settings in Emacs, but
+  ;; overriding any indent settings in your prettier config files. This changes
+  ;; it to omit indent switches if any configuration for prettier is present in
+  ;; the current project.
+  (dolist (formatter '(prettier prettier-css prettier-html prettier-javascript
+                       prettier-json prettier-scss prettier-svelte
+                       prettier-typescript prettier-yaml))
+    (setf (alist-get formatter apheleia-formatters)
+          (append (delete '(apheleia-formatters-js-indent "--use-tabs" "--tab-width")
+                          (alist-get formatter apheleia-formatters))
+                  '((when apheleia-formatters-respect-indent-level
+                      (unless (or (cl-loop for file
+                                           in '(".prettierrc"
+                                                ".prettierrc.json"
+                                                ".prettierrc.yml"
+                                                ".prettierrc.yaml"
+                                                ".prettierrc.json5"
+                                                ".prettierrc.js" "prettier.config.js"
+                                                ".prettierrc.mjs" "prettier.config.mjs"
+                                                ".prettierrc.cjs" "prettier.config.cjs"
+                                                ".prettierrc.toml")
+                                           if (locate-dominating-file default-directory file)
+                                           return t)
+                                  (when-let* ((pkg (locate-dominating-file default-directory "package.json")))
+                                    (require 'json)
+                                    (let ((json-key-type 'alist))
+                                      (assq 'prettier
+                                            (json-read-file (expand-file-name "package.json" pkg))))))
+                        (apheleia-formatters-indent "--use-tabs" "--tab-width"))))))))

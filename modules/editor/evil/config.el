@@ -1,24 +1,30 @@
 ;;; editor/evil/config.el -*- lexical-binding: t; -*-
 
-(defvar +evil-repeat-keys (cons ";" ",")
-  "The keys to use for universal repeating motions.
-
-This is a cons cell whose CAR is the key for repeating a motion forward, and
-whose CDR is for repeating backward. They should both be `kbd'-able strings.
-
-Set this to `nil' to disable universal-repeating on these keys.")
-
-(defvar +evil-want-o/O-to-continue-comments t
+(defcustom +evil-want-o/O-to-continue-comments t
   "If non-nil, the o/O keys will continue comment lines if the point is on a
-line with a linewise comment.")
+line with a linewise comment."
+  :type 'boolean
+  :group '+evil)
 
-(defvar +evil-preprocessor-regexp "^\\s-*#[a-zA-Z0-9_]"
+(defcustom +evil-want-move-window-to-wrap-around nil
+  "If non-nil, `+evil/window-move-*' commands will wrap around."
+  :type 'boolean
+  :group '+evil)
+
+(defcustom +evil-preprocessor-regexp "^\\s-*#[a-zA-Z0-9_]"
   "The regexp used by `+evil/next-preproc-directive' and
 `+evil/previous-preproc-directive' on ]# and [#, to jump between preprocessor
-directives. By default, this only recognizes C directives.")
+directives. By default, this only recognizes C directives."
+  :type 'regexp
+  :group '+evil)
+
+
+;;
+;;; Packages
 
 ;; Set these defaults before `evil'; use `defvar' so they can be changed prior
 ;; to loading.
+(defvar evil-want-keybinding (not (modulep! +everywhere)))
 (defvar evil-want-C-g-bindings t)
 (defvar evil-want-C-i-jump nil)  ; we do this ourselves
 (defvar evil-want-C-u-scroll t)  ; moved the universal arg to <leader> u
@@ -35,9 +41,9 @@ directives. By default, this only recognizes C directives.")
   (setq evil-ex-search-vim-style-regexp t
         evil-ex-visual-char-range t  ; column range for ex commands
         evil-mode-line-format 'nil
-        ;; more vim-like behavior
+        ;; More vim-like behavior
         evil-symbol-word-search t
-        ;; if the current state is obvious from the cursor's color/shape, then
+        ;; If the current state is obvious from the cursor's color/shape, then
         ;; we won't need superfluous indicators to do it instead.
         evil-default-cursor '+evil-default-cursor-fn
         evil-normal-state-cursor 'box
@@ -55,20 +61,38 @@ directives. By default, this only recognizes C directives.")
               ((modulep! :emacs undo) 'undo-fu)
               ((> emacs-major-version 27) 'undo-redo)))
 
+  ;; Fix #7141
+  (defadvice! +evil--persist-state-a (fn &rest args)
+    "When changing major modes, Evil's state is lost. This advice preserves it."
+    :around #'set-auto-mode
+    (if evil-state
+        (evil-save-state (apply fn args))
+      (apply fn args)))
+
   ;; Slow this down from 0.02 to prevent blocking in large or folded buffers
   ;; like magit while incrementally highlighting matches.
-  (setq-hook! '(magit-mode-hook so-long-minor-mode-hook)
+  (setq-hook! '(special-mode-hook so-long-minor-mode-hook)
     evil-ex-hl-update-delay 0.25)
 
   :config
   (evil-select-search-module 'evil-search-module 'evil-search)
 
+  ;; HACK: `evil-ex-search' (used by `n'/`N') calls `isearch-range-invisible'
+  ;;   which temporarily opens fold overlays, but never calls
+  ;;   `isearch-clean-overlays' to restore them. This corrupts org-fold overlay
+  ;;   state, making subtrees permanently unfoldable with TAB. See
+  ;;   emacs-evil/evil#1630, #8625.
+  ;; REVIEW: Remove when emacs-evil/evil#1630 is resolved.
+  (defadvice! +evil--clean-isearch-overlays-a (&rest _)
+    :after #'evil-ex-search
+    (isearch-clean-overlays))
+
   ;; PERF: Stop copying the selection to the clipboard each time the cursor
-  ;; moves in visual mode. Why? Because on most non-X systems (and in terminals
-  ;; with clipboard plugins like xclip.el active), Emacs will spin up a new
-  ;; process to communicate with the clipboard for each movement. On Windows,
-  ;; older versions of macOS (pre-vfork), and Waylang (without pgtk), this is
-  ;; super expensive and can lead to freezing and/or zombie processes.
+  ;;   moves in visual mode. Why? Because on most non-X systems (and in
+  ;;   terminals with clipboard plugins like xclip.el active), Emacs will spin
+  ;;   up a new process to communicate with the clipboard for each movement. On
+  ;;   Windows, older versions of macOS (pre-vfork), and Waylang (without pgtk),
+  ;;   this is super expensive and can lead to freezing and/or zombie processes.
   ;;
   ;; UX: It also clobbers clipboard managers (see emacs-evil/evil#336).
   (setq evil-visual-update-x-selection-p nil)
@@ -83,21 +107,23 @@ directives. By default, this only recognizes C directives.")
         '(("^\\*evil-registers" :size 0.3)
           ("^\\*Command Line"   :size 8)))))
 
-  ;; Change the cursor color in emacs state. We do it this roundabout way
-  ;; to ensure changes in theme doesn't break these colors.
-  (add-hook! '(doom-load-theme-hook doom-after-modules-config-hook)
+  ;; We want to update the colors after a new theme has been enabled, but this
+  ;; is tricky: whenever a cursor color is applied, Emacs will automatically
+  ;; change the 'cursor face accordingly to keep it in sync. As a result, we
+  ;; read and store the new theme colors as early as possible, and in particular
+  ;; before evil performs its next cursor refresh.
+  (add-hook! '(doom-load-theme-hook doom-after-modules-config-hook) :depth -100
     (defun +evil-update-cursor-color-h ()
+      ;; Use a flashy color for emacs state.
       (put 'cursor 'evil-emacs-color  (face-foreground 'warning))
       (put 'cursor 'evil-normal-color (face-background 'cursor))))
-
   (defun +evil-default-cursor-fn ()
     (evil-set-cursor-color (get 'cursor 'evil-normal-color)))
   (defun +evil-emacs-cursor-fn ()
     (evil-set-cursor-color (get 'cursor 'evil-emacs-color)))
 
-  ;; Ensure `evil-shift-width' always matches `tab-width'; evil does not police
-  ;; this itself, so we must.
-  (setq-hook! 'after-change-major-mode-hook evil-shift-width tab-width)
+  ;; HACK: Ensure `evil-shift-width' always matches `tab-width'.
+  (set-indent-vars! t 'evil-shift-width)
 
 
   ;; --- keybind fixes ----------------------
@@ -109,9 +135,18 @@ directives. By default, this only recognizes C directives.")
   (add-hook! 'doom-escape-hook
     (defun +evil-disable-ex-highlights-h ()
       "Disable ex search buffer highlights."
-      (when (evil-ex-hl-active-p 'evil-ex-search)
+      (when (or (evil-ex-hl-active-p 'evil-ex-search)
+                (bound-and-true-p anzu--state))
         (evil-ex-nohighlight)
         t)))
+
+  ;; REVIEW: Remove if emacs-evil/evil#1971 is addressed.
+  (when evil-respect-visual-line-mode
+    (evil-define-minor-mode-key 'motion 'visual-line-mode
+      [up]   #'evil-previous-visual-line
+      [down] #'evil-next-visual-line
+      [home] #'evil-beginning-of-visual-line
+      [end]  #'evil-end-of-visual-line))
 
 
   ;; --- evil hacks -------------------------
@@ -135,55 +170,71 @@ directives. By default, this only recognizes C directives.")
                  (count-lines (point-min) (point-max))
                  (buffer-size)))))
 
-  ;; HACK '=' moves the cursor to the beginning of selection. Disable this,
-  ;;      since it's more disruptive than helpful.
+  ;; HACK: '=' moves the cursor to the beginning of selection. Disable this,
+  ;;   since it's more disruptive than helpful.
   (defadvice! +evil--dont-move-cursor-a (fn &rest args)
     :around #'evil-indent
     (save-excursion (apply fn args)))
 
-  ;; REVIEW In evil, registers 2-9 are buffer-local. In vim, they're global,
-  ;;        so... Perhaps this should be PRed upstream?
+  ;; HACK: In vim, registers 2-9 are global. In Evil, they're buffer-local.  so
+  ;;   I enforce vim's way.
+  ;; REVIEW: PR this upstream?
   (defadvice! +evil--make-numbered-markers-global-a (char)
     :after-until #'evil-global-marker-p
     (and (>= char ?2) (<= char ?9)))
 
-  ;; REVIEW Fix #2493: dir-locals cannot target fundamental-mode when evil-mode
-  ;;        is active. See hlissner/doom-emacs#2493. Revert this if
-  ;;        emacs-evil/evil#1268 is resolved upstream.
-  (defadvice! +evil--fix-local-vars-a (&rest _)
-    :before #'turn-on-evil-mode
-    (when (eq major-mode 'fundamental-mode)
-      (hack-local-variables)))
-
-  ;; HACK Invoking helpful from evil-ex throws a "No recursive edit is in
-  ;;      progress" error because, between evil-ex and helpful,
-  ;;      `abort-recursive-edit' gets called one time too many.
-  (defadvice! +evil--fix-helpful-key-in-evil-ex-a (key-sequence)
-    :before #'helpful-key
-    (when (evil-ex-p)
-      (run-at-time 0.1 nil #'helpful-key key-sequence)
-      (abort-recursive-edit)))
-
-  ;; Make J (evil-join) remove comment delimiters when joining lines.
+  ;; HACK: Fix joining commented lines with J (evil-join).
   (advice-add #'evil-join :around #'+evil-join-a)
 
-  ;; Prevent gw (`evil-fill') and gq (`evil-fill-and-move') from squeezing
-  ;; spaces. It doesn't in vim, so it shouldn't in evil.
+  ;; HACK: Prevent gw (`evil-fill') and gq (`evil-fill-and-move') from squeezing
+  ;;   spaces. It doesn't in vim, so it shouldn't in evil.
   (defadvice! +evil--no-squeeze-on-fill-a (fn &rest args)
     :around '(evil-fill evil-fill-and-move)
-    (letf! (defun fill-region (from to &optional justify nosqueeze to-eop)
+    (letf! (defun fill-region (from to &optional justify _nosqueeze to-eop)
              (funcall fill-region from to justify t to-eop))
       (apply fn args)))
+
+  ;; HACK: Make Emacs registers recognize and treat Evil registers like their
+  ;;   own, for consistency's sake.
+  (when (modulep! +everywhere)
+    (defvar +evil--use-evil-registers t)
+
+    (defadvice! +evil--use-evil-registers-a (fn register)
+      "Merge Evil's registers into Emacs' register list (when Evil is active)."
+      :around #'get-register
+      (if (and (characterp register)  ; prevent `evil-get-register' type error
+               +evil--use-evil-registers
+               (or (bound-and-true-p evil-mode)
+                   (bound-and-true-p evil-local-mode)))
+          (if (char-equal register ?=)   ; last expression register input
+              evil-last-=-register-input
+            (let (+evil--use-evil-registers)
+              (evil-get-register register t)))
+        (funcall fn register)))
+
+    (defadvice! +evil--propagate-registers-a (fn &rest args)
+      "Merge Evil's registers into Emacs' register list (when Evil is active)."
+      :around #'register-swap-out
+      :around #'register-buffer-to-file-query
+      :around #'register-read-with-preview-fancy
+      :around #'list-registers
+      (let ((register-alist
+             (if (and +evil--use-evil-registers
+                      (or (bound-and-true-p evil-mode)
+                          (bound-and-true-p evil-local-mode)))
+                 (evil-register-list)
+               register-alist)))
+        (apply fn args))))
 
   ;; Make ESC (from normal mode) the universal escaper. See `doom-escape-hook'.
   (advice-add #'evil-force-normal-state :after #'+evil-escape-a)
 
-  ;; monkey patch `evil-ex-replace-special-filenames' to improve support for
-  ;; file modifiers like %:p:h. This adds support for most of vim's modifiers,
-  ;; and one custom one: %:P (expand to the project root).
+  ;; HACK: Enhance `evil-ex-replace-special-filenames' to add support for
+  ;;   Vim-like Ex file modifiers like %:p:h. Most vim's modifiers are
+  ;;   supported, plus one custom one: %:P (expands to the project's root).
   (advice-add #'evil-ex-replace-special-filenames :override #'+evil-replace-filename-modifiers-a)
 
-  ;; make `try-expand-dabbrev' (from `hippie-expand') work in minibuffer
+  ;; HACK: Make `try-expand-dabbrev' (from `hippie-expand') work in minibuffer
   (add-hook 'minibuffer-inactive-mode-hook #'+evil--fix-dabbrev-in-minibuffer-h)
 
   ;; Focus and recenter new splits
@@ -194,42 +245,57 @@ directives. By default, this only recognizes C directives.")
   (advice-add #'evil-open-above :around #'+evil--insert-newline-above-and-respect-comments-a)
   (advice-add #'evil-open-below :around #'+evil--insert-newline-below-and-respect-comments-a)
 
-  ;; --- custom interactive codes -----------
-  ;; These arg types will highlight matches in the current buffer
-  (evil-ex-define-argument-type regexp-match
-    :runner (lambda (flag &optional arg) (+evil-ex-regexp-match flag arg 'inverted)))
-  (evil-ex-define-argument-type regexp-global-match
-    :runner +evil-ex-regexp-match)
-
-  (defun +evil--regexp-match-args (arg)
-    (when (evil-ex-p)
-      (cl-destructuring-bind (&optional arg flags)
-          (evil-delimited-arguments arg 2)
-        (list arg (string-to-list flags)))))
-
-  ;; Other commands can make use of this
-  (evil-define-interactive-code "<//>"
-    :ex-arg regexp-match
-    (+evil--regexp-match-args evil-ex-argument))
-
-  (evil-define-interactive-code "<//!>"
-    :ex-arg regexp-global-match
-    (+evil--regexp-match-args evil-ex-argument))
-
-  ;; Forward declare these so that ex completion works, even if the autoloaded
-  ;; functions aren't loaded yet.
-  (evil-add-command-properties '+evil:align :ex-arg 'regexp-match)
-  (evil-add-command-properties '+evil:align-right :ex-arg 'regexp-match)
-  (evil-add-command-properties '+multiple-cursors:evil-mc :ex-arg 'regexp-global-match)
-
   ;; Lazy load evil ex commands
-  (delq! 'evil-ex features)
+  (cl-callf2 delq 'evil-ex features)
   (add-transient-hook! 'evil-ex (provide 'evil-ex))
   (after! evil-ex (load! "+commands")))
 
 
-;;
-;;; Packages
+(use-package! evil-collection
+  :after evil
+  :when (modulep! +everywhere)
+  :unless noninteractive
+  :unless (doom-context-p 'reload)
+  :hook (doom-after-modules-config . evil-collection-init)
+  :preface
+  (defvar +evil-collection-disabled-list
+    '(anaconda-mode
+      company
+      elisp-mode
+      ert
+      lispy)
+    "A list of modules to ignore in `evil-collection-mode-list'.
+
+The defaults disable modules that we have our own keybinds for or that (IMO)
+don't offer any/enough real value to users.")
+  :init
+  (defvar evil-collection-company-use-tng (modulep! :completion company +tng))
+  (defvar evil-collection-setup-minibuffer nil)
+  (defvar evil-collection-want-unimpaired-p nil)  ; we have our own
+  ;; We bind goto-reference on gD and goto-assignments on gA ourselves
+  (defvar evil-collection-want-find-usages-bindings-p nil)
+  ;; Reduces keybind conflicts between outline-mode and org-mode (which is
+  ;; derived from outline-mode).
+  (defvar evil-collection-outline-enable-in-minor-mode-p nil)
+  :config
+  (dolist (sym +evil-collection-disabled-list)
+    (if-let* ((elt (assq sym evil-collection-mode-list)))
+        (cl-callf2 delete elt evil-collection-mode-list)
+      (cl-callf2 delq sym evil-collection-mode-list)))
+
+  (setq evil-collection-key-blacklist
+        (append (list doom-leader-key doom-localleader-key
+                      doom-leader-alt-key)
+                evil-collection-key-blacklist
+                (if (modulep! :tools lookup) '("gd" "gf" "K"))
+                (if (modulep! :tools eval) '("gr" "gR"))
+                '("[" "]" "gz" "<escape>")))
+
+  (defadvice! +evil-collection-disable-blacklist-a (fn)
+    :around #'evil-collection-vterm-toggle-send-escape  ; allow binding to ESC
+    (let (evil-collection-key-blacklist)
+      (funcall-interactively fn))))
+
 
 (use-package! evil-easymotion
   :after-call doom-first-input-hook
@@ -263,16 +329,26 @@ directives. By default, this only recognizes C directives.")
   :hook (LaTeX-mode . embrace-LaTeX-mode-hook)
   :hook (LaTeX-mode . +evil-embrace-latex-mode-hook-h)
   :hook (org-mode . embrace-org-mode-hook)
-  :hook (ruby-mode . embrace-ruby-mode-hook)
+  :hook ((ruby-mode ruby-ts-mode) . embrace-ruby-mode-hook)
   :hook (emacs-lisp-mode . embrace-emacs-lisp-mode-hook)
-  :hook ((lisp-mode emacs-lisp-mode clojure-mode racket-mode hy-mode)
-         . +evil-embrace-lisp-mode-hook-h)
-  :hook ((c++-mode rustic-mode csharp-mode java-mode swift-mode typescript-mode)
-         . +evil-embrace-angle-bracket-modes-hook-h)
-  :hook (scala-mode . +evil-embrace-scala-mode-hook-h)
+  :hook ((c++-mode c++-ts-mode) . +evil-embrace-angle-bracket-modes-hook-h)
+  :hook ((csharp-mode csharp-ts-mode) . +evil-embrace-angle-bracket-modes-hook-h)
+  :hook ((java-mode java-ts-mode) . +evil-embrace-angle-bracket-modes-hook-h)
+  :hook ((scala-mode scala-ts-mode) . +evil-embrace-scala-mode-hook-h)
+  :hook ((swift-mode typescript-mode rustic-mode) . +evil-embrace-angle-bracket-modes-hook-h)
   :init
   (after! evil-surround
     (evil-embrace-enable-evil-surround-integration))
+
+  ;; HACK: This must be done ASAP, before embrace has a chance to
+  ;;   buffer-localize `embrace--pairs-list' (which happens right after it calls
+  ;;   `embrace--setup-defaults'), otherwise any new, global default pairs we
+  ;;   define won't be in scope.
+  (defadvice! +evil--embrace-init-escaped-pairs-a (&rest _)
+    "Add escaped-sequence support to embrace."
+    :after #'embrace--setup-defaults
+    (embrace-add-pair-regexp ?\\ "\\[[{(]" "\\[]})]" #'+evil--embrace-escaped
+                             (embrace-build-help "\\?" "\\?")))
   :config
   (setq evil-embrace-show-help-p nil)
 
@@ -283,8 +359,8 @@ directives. By default, this only recognizes C directives.")
     (dolist (pair '((?\' . ("`" . "\'"))
                     (?\" . ("``" . "\'\'"))))
       (delete (car pair) evil-embrace-evil-surround-keys)
-      ;; Avoid `embrace-add-pair' because it would overwrite the default
-      ;; rules, which we want for other modes
+      ;; Avoid `embrace-add-pair' because it would overwrite the default rules,
+      ;; which we want for other modes
       (push (cons (car pair) (make-embrace-pair-struct
                               :key (car pair)
                               :left (cadr pair)
@@ -294,30 +370,12 @@ directives. By default, this only recognizes C directives.")
             embrace--pairs-list))
     (embrace-add-pair-regexp ?l "\\[a-z]+{" "}" #'+evil--embrace-latex))
 
-  (defun +evil-embrace-lisp-mode-hook-h ()
-    ;; Avoid `embrace-add-pair-regexp' because it would overwrite the default
-    ;; `f' rule, which we want for other modes
-    (push (cons ?f (make-embrace-pair-struct
-                    :key ?f
-                    :read-function #'+evil--embrace-elisp-fn
-                    :left-regexp "([^ ]+ "
-                    :right-regexp ")"))
-          embrace--pairs-list))
-
   (defun +evil-embrace-angle-bracket-modes-hook-h ()
     (let ((var (make-local-variable 'evil-embrace-evil-surround-keys)))
       (set var (delq ?< evil-embrace-evil-surround-keys))
       (set var (delq ?> evil-embrace-evil-surround-keys)))
     (embrace-add-pair-regexp ?< "\\_<[a-z0-9-_]+<" ">" #'+evil--embrace-angle-brackets)
-    (embrace-add-pair ?> "<" ">"))
-
-  ;; Add escaped-sequence support to embrace
-  (setf (alist-get ?\\ (default-value 'embrace--pairs-list))
-        (make-embrace-pair-struct
-         :key ?\\
-         :read-function #'+evil--embrace-escaped
-         :left-regexp "\\[[{(]"
-         :right-regexp "\\[]})]")))
+    (embrace-add-pair ?> "<" ">")))
 
 
 (use-package! evil-escape
@@ -326,7 +384,7 @@ directives. By default, this only recognizes C directives.")
   :init
   (setq evil-escape-excluded-states '(normal visual multiedit emacs motion)
         evil-escape-excluded-major-modes '(neotree-mode treemacs-mode vterm-mode)
-        evil-escape-key-sequence "jk"
+        evil-escape-key-sequence nil
         evil-escape-delay 0.15)
   (evil-define-key* '(insert replace visual operator) 'global "\C-g" #'evil-escape)
   :config
@@ -373,11 +431,11 @@ directives. By default, this only recognizes C directives.")
 
 
 (use-package! evil-surround
+  :hook (doom-first-input . global-evil-surround-mode)
   :commands (global-evil-surround-mode
              evil-surround-edit
              evil-Surround-edit
-             evil-surround-region)
-  :config (global-evil-surround-mode 1))
+             evil-surround-region))
 
 
 (use-package! evil-textobj-anyblock
@@ -393,9 +451,10 @@ directives. By default, this only recognizes C directives.")
 (use-package! evil-traces
   :after evil-ex
   :config
-  (pushnew! evil-traces-argument-type-alist
-            '(+evil:align . evil-traces-global)
-            '(+evil:align-right . evil-traces-global))
+  (dolist (argtype '((+evil:align . evil-traces-global)
+                     (+evil:align-right . evil-traces-global)
+                     (+multiple-cursors:evil-mc . evil-traces-substitute)))
+    (add-to-list 'evil-traces-argument-type-alist argtype))
   (evil-traces-mode))
 
 
@@ -420,8 +479,7 @@ directives. By default, this only recognizes C directives.")
 ;;
 ;;; Keybinds
 
-;; Keybinds that have no Emacs+evil analogues (i.e. don't exist):
-;;   zu{q,w} - undo last marking
+;; TODO: zu{q,w} - undo last marking
 
 (map! :v  "@"     #'+evil:apply-macro
       :m  [C-i]   #'evil-jump-forward
@@ -499,17 +557,13 @@ directives. By default, this only recognizes C directives.")
        :nv "gd"  #'+lookup/definition
        :nv "gD"  #'+lookup/references
        :nv "gf"  #'+lookup/file
-       :nv "gI"  #'+lookup/implementations
-       :nv "gA"  #'+lookup/assignments)
+       :nv "gI"  #'+lookup/implementations)
       (:when (modulep! :tools eval)
        :nv "gr"  #'+eval:region
        :n  "gR"  #'+eval/buffer
        :v  "gR"  #'+eval:replace-region
        ;; Restore these keybinds, since the blacklisted/overwritten gr/gR will
        ;; undo them:
-       (:after helpful
-        :map helpful-mode-map
-        :n "gr" #'helpful-update)
        (:after compile
         :map (compilation-mode-map compilation-minor-mode-map)
         :n "gr" #'recompile)
@@ -523,7 +577,11 @@ directives. By default, this only recognizes C directives.")
        (:after elfeed
         :map elfeed-search-mode-map
         :n "gr" #'elfeed-search-update--force
-        :n "gR" #'elfeed-search-fetch))
+        :n "gR" #'elfeed-search-fetch)
+       (:after eglot
+        :map eglot-mode-map
+        :nv "gd" #'+lookup/definition
+        :nv "gD" #'+lookup/references))
 
       ;; custom evil keybinds
       :nv "zn"    #'+evil:narrow-buffer
@@ -581,6 +639,7 @@ directives. By default, this only recognizes C directives.")
       ;; evil-easymotion
       (:after evil-easymotion
        :m "gs" evilem-map
+       ;; TODO: Use named functions
        (:map evilem-map
         "a" (evilem-create #'evil-forward-arg)
         "A" (evilem-create #'evil-backward-arg)
@@ -609,15 +668,26 @@ directives. By default, this only recognizes C directives.")
       :v "gl" #'evil-lion-left
       :v "gL" #'evil-lion-right
 
-      ;; Omni-completion
-      (:when (modulep! :completion company)
-       (:prefix "C-x"
-        :i "C-l"    #'+company/whole-lines
-        :i "C-k"    #'+company/dict-or-keywords
-        :i "C-f"    #'company-files
-        :i "C-]"    #'company-etags
-        :i "s"      #'company-ispell
-        :i "C-s"    #'company-yasnippet
-        :i "C-o"    #'company-capf
-        :i "C-n"    #'+company/dabbrev
-        :i "C-p"    #'+company/dabbrev-code-previous)))
+      ;; Emulation of Vim's omni-completion keybinds
+      (:unless evil-disable-insert-state-bindings
+        (:prefix "C-x"
+          (:when (modulep! :completion company)
+           :i "C-l"  #'+company/whole-lines
+           :i "C-k"  #'+company/dict-or-keywords
+           :i "C-f"  #'company-files
+           :i "C-]"  #'company-etags
+           :i "s"    #'company-ispell
+           :i "C-s"  #'company-yasnippet
+           :i "C-o"  #'company-capf
+           :i "C-n"  #'+company/dabbrev
+           :i "C-p"  #'+company/dabbrev-code-previous)
+          (:when (modulep! :completion corfu)
+           :i "C-l"  #'cape-line
+           :i "C-k"  #'cape-keyword
+           :i "C-f"  #'cape-file
+           :i "C-]"  #'complete-tag
+           :i "s"    #'cape-dict
+           :i "C-s"  #'yasnippet-capf
+           :i "C-o"  #'completion-at-point
+           :i "C-n"  #'cape-dabbrev
+           :i "C-p"  #'+corfu/dabbrev-this-buffer))))

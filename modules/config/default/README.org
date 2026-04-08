@@ -20,6 +20,9 @@ This module provides a set of reasonable defaults, including:
 
 ** Module flags
 - +bindings :: ...
+- +gnupg ::
+  Enable GnuPG integration and defaults, allowing Emacs to pick up on your
+  default GPG keys, including interop with pinentry-emacs.
 - +smartparens :: ...
 
 ** Packages
@@ -43,12 +46,12 @@ This module provides a set of reasonable defaults, including:
 
 * TODO Usage
 #+begin_quote
- 🔨 This module has no usage documentation yet. [[doom-contrib-module:][Write some?]]
+ 󱌣 This module has no usage documentation yet. [[doom-contrib-module:][Write some?]]
 #+end_quote
 
 * TODO Configuration
 #+begin_quote
- 🔨 This module has no configuration documentation yet. [[doom-contrib-module:][Write some?]]
+ 󱌣 This module has no configuration documentation yet. [[doom-contrib-module:][Write some?]]
 #+end_quote
 
 * Troubleshooting
@@ -59,7 +62,7 @@ This module provides a set of reasonable defaults, including:
 
 * TODO Appendix
 #+begin_quote
- 🔨 /This module's appendix is incomplete./ [[doom-contrib-module:][Write more?]]
+ 󱌣 /This module's appendix is incomplete./ [[doom-contrib-module:][Write more?]]
 #+end_quote
 
 ** Commands

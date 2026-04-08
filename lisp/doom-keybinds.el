@@ -15,6 +15,12 @@
   "An alternative leader prefix key, used for Insert and Emacs states, and for
 non-evil users.")
 
+(defvar doom-leader-key-states '(normal visual motion)
+  "which evil modes to activate the leader key for")
+
+(defvar doom-leader-alt-key-states '(emacs insert)
+  "which evil modes to activate the alternative leader key for")
+
 (defvar doom-localleader-key "SPC m"
   "The localleader prefix key, for major-mode specific commands.")
 
@@ -30,7 +36,7 @@ and Emacs states, and for non-evil users.")
 ;;; Global keybind settings
 
 (cond
- (IS-MAC
+ (doom--system-macos-p
   ;; mac-* variables are used by the special emacs-mac build of Emacs by
   ;; Yamamoto Mitsuharu, while other builds use ns-*.
   (setq mac-command-modifier      'super
@@ -40,31 +46,40 @@ and Emacs states, and for non-evil users.")
         ;; Free up the right option for character composition
         mac-right-option-modifier 'none
         ns-right-option-modifier  'none))
- (IS-WINDOWS
+ (doom--system-windows-p
   (setq w32-lwindow-modifier 'super
         w32-rwindow-modifier 'super)))
 
-;; HACK: Emacs cannot distinguish between C-i from TAB. This is largely a
-;;   byproduct of its history in the terminal, which can't distinguish them
-;;   either, however, when GUIs came about Emacs greated separate input events
-;;   for more contentious keys like TAB and RET. Therefore [return] != RET,
-;;   [tab] != TAB, and [backspace] != DEL.
-;;
-;;   In the same vein, this keybind adds a [C-i] event, so users can bind to it.
-;;   Otherwise, it falls back to regular C-i keybinds.
-(define-key key-translation-map [?\C-i]
-  (cmd! (if (let ((keys (this-single-command-raw-keys)))
-              (and keys
-                   (not (cl-position 'tab    keys))
-                   (not (cl-position 'kp-tab keys))
-                   (display-graphic-p)
-                   ;; Fall back if no <C-i> keybind can be found, otherwise
-                   ;; we've broken all pre-existing C-i keybinds.
-                   (let ((key
-                          (doom-lookup-key
-                           (vconcat (cl-subseq keys 0 -1) [C-i]))))
-                     (not (or (numberp key) (null key))))))
-            [C-i] [?\C-i])))
+;; HACK: Emacs can't distinguish C-i from TAB, or C-m from RET, in either GUI or
+;;   TTY frames. This is a byproduct of its history with the terminal, which
+;;   can't distinguish them either, however, Emacs has separate input events for
+;;   many contentious keys like TAB and RET (like [tab] and [return], aka
+;;   "<tab>" and "<return>"), which are only triggered in GUI frames, so here, I
+;;   create one for C-i. Won't work in TTY frames, though. Doom's :os tty module
+;;   has a workaround for that though.
+(defun doom-init-input-decode-map-h ()
+  (pcase-dolist (`(,key ,fallback . ,events)
+                 '(([C-i] [?\C-i] tab kp-tab)
+                   ([C-m] [?\C-m] return kp-return)))
+    (define-key
+     input-decode-map fallback
+     (cmd! (if (when-let* ((keys (this-single-command-raw-keys)))
+                 (and (display-graphic-p)
+                      (not (cl-loop for event in events
+                                    if (cl-position event keys)
+                                    return t))
+                      ;; Use FALLBACK if nothing is bound to KEY, otherwise
+                      ;; we've broken all pre-existing FALLBACK keybinds.
+                      (key-binding
+                       (vconcat (if (= 0 (length keys)) [] (cl-subseq keys 0 -1))
+                                key) nil t)))
+               key fallback)))))
+
+;; `input-decode-map' bindings are resolved on first invokation, and are
+;; frame-local, so they must be rebound on every new frame.
+(if (daemonp)
+    (add-hook 'server-after-make-frame-hook #'doom-init-input-decode-map-h)
+  (doom-init-input-decode-map-h))
 
 
 ;;
@@ -76,7 +91,7 @@ and Emacs states, and for non-evil users.")
 ;; 1. Quit active states; e.g. highlights, searches, snippets, iedit,
 ;;    multiple-cursors, recording macros, etc.
 ;; 2. Close popup windows remotely (if it is allowed to)
-;; 3. Refresh buffer indicators, like git-gutter and flycheck
+;; 3. Refresh buffer indicators, like diff-hl and flycheck
 ;; 4. Or fall back to `keyboard-quit'
 ;;
 ;; And it should do these things incrementally, rather than all at once. And it
@@ -93,19 +108,20 @@ all hooks after it are ignored.")
 (defun doom/escape (&optional interactive)
   "Run `doom-escape-hook'."
   (interactive (list 'interactive))
-  (cond ((minibuffer-window-active-p (minibuffer-window))
-         ;; quit the minibuffer if open.
-         (when interactive
-           (setq this-command 'abort-recursive-edit))
-         (abort-recursive-edit))
-        ;; Run all escape hooks. If any returns non-nil, then stop there.
-        ((run-hook-with-args-until-success 'doom-escape-hook))
-        ;; don't abort macros
-        ((or defining-kbd-macro executing-kbd-macro) nil)
-        ;; Back to the default
-        ((unwind-protect (keyboard-quit)
+  (let ((inhibit-quit t))
+    (cond ((minibuffer-window-active-p (minibuffer-window))
+           ;; quit the minibuffer if open.
            (when interactive
-             (setq this-command 'keyboard-quit))))))
+             (setq this-command 'abort-recursive-edit))
+           (abort-recursive-edit))
+          ;; Run all escape hooks. If any returns non-nil, then stop there.
+          ((run-hook-with-args-until-success 'doom-escape-hook))
+          ;; don't abort macros
+          ((or defining-kbd-macro executing-kbd-macro) nil)
+          ;; Back to the default
+          ((unwind-protect (keyboard-quit)
+             (when interactive
+               (setq this-command 'keyboard-quit)))))))
 
 (global-set-key [remap keyboard-quit] #'doom/escape)
 
@@ -143,14 +159,15 @@ all hooks after it are ignored.")
               (push `(define-key doom-leader-map (general--kbd ,key)
                        ,bdef)
                     forms))
-            (when-let (desc (cadr (memq :which-key udef)))
-              (prependq!
-               wkforms `((which-key-add-key-based-replacements
-                           (general--concat t doom-leader-alt-key ,key)
-                           ,desc)
-                         (which-key-add-key-based-replacements
-                           (general--concat t doom-leader-key ,key)
-                           ,desc))))))))
+            (when-let* ((desc (cadr (memq :which-key udef))))
+              (cl-callf2 append
+                  `((which-key-add-key-based-replacements
+                      (general--concat t doom-leader-alt-key ,key)
+                      ,desc)
+                    (which-key-add-key-based-replacements
+                      (general--concat t doom-leader-key ,key)
+                      ,desc))
+                  wkforms))))))
     (macroexp-progn
      (append (and wkforms `((after! which-key ,@(nreverse wkforms))))
              (nreverse forms)))))
@@ -211,8 +228,8 @@ localleader prefix."
                   ((equal doom-leader-alt-key "C-x")
                    (set-keymap-parent doom-leader-map ctl-x-map)))
             (define-key map (kbd doom-leader-alt-key) 'doom/leader))
-        (evil-define-key* '(normal visual motion) map (kbd doom-leader-key) 'doom/leader)
-        (evil-define-key* '(emacs insert) map (kbd doom-leader-alt-key) 'doom/leader))
+        (evil-define-key* doom-leader-key-states map (kbd doom-leader-key) 'doom/leader)
+        (evil-define-key* doom-leader-alt-key-states map (kbd doom-leader-alt-key) 'doom/leader))
       (general-override-mode +1))))
 
 
@@ -258,7 +275,7 @@ localleader prefix."
 (defun doom--map-keyword-to-states (keyword)
   "Convert a KEYWORD into a list of evil state symbols.
 
-For example, :nvi will map to (list 'normal 'visual 'insert). See
+For example, :nvi will map to (list \\='normal \\='visual \\='insert). See
 `doom-evil-state-alist' to customize this."
   (cl-loop for l across (doom-keyword-name keyword)
            if (assq l doom-evil-state-alist) collect (cdr it)
@@ -298,7 +315,7 @@ For example, :nvi will map to (list 'normal 'visual 'insert). See
                  (:desc
                   (setq desc (pop rest)))
                  (:map
-                  (doom--map-set :keymaps `(quote ,(ensure-list (pop rest)))))
+                  (doom--map-set :keymaps `(backquote ,(ensure-list (pop rest)))))
                  (:mode
                   (push (cl-loop for m in (ensure-list (pop rest))
                                  collect (intern (concat (symbol-name m) "-map")))

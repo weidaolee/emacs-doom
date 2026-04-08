@@ -21,7 +21,7 @@ DEFAULT-P is a boolean. If non-nil, it marks that email account as the
 default/fallback account."
   (after! mu4e
     (when (version< mu4e-mu-version "1.4")
-      (when-let (address (cdr (assq 'user-mail-address letvars)))
+      (when-let* ((address (cdr (assq 'user-mail-address letvars))))
         (add-to-list 'mu4e-user-mail-address-list address)))
     ;; remove existing context with same label
     (setq mu4e-contexts
@@ -33,8 +33,11 @@ default/fallback account."
                     :enter-func
                     (lambda () (mu4e-message "Switched to %s" label))
                     :leave-func
-                    (lambda () (progn (setq +mu4e-personal-addresses nil)
-                                      (mu4e-clear-caches)))
+                    (lambda ()
+                      (setq +mu4e-personal-addresses nil)
+                      ;; REVIEW: `mu4e-clear-caches' was removed in 1.12.2, but
+                      ;;   may still be useful to users on older versions.
+                      (if (fboundp 'mu4e-clear-caches) (mu4e-clear-caches)))
                     :match-func
                     (lambda (msg)
                       (when msg
@@ -52,7 +55,7 @@ default/fallback account."
 (add-hook 'mu4e-main-mode-hook #'+mu4e-init-h)
 
 ;;;###autoload
-(defun =mu4e ()
+(defun =mu4e (&optional background)
   "Start email client."
   (interactive)
   (require 'mu4e)
@@ -62,7 +65,7 @@ default/fallback account."
       ;; as otherwise you can accumulate empty workspaces
       (progn
         (unless (+workspace-buffer-list)
-          (+workspace-delete (+workspace-current-name)))
+          (+workspace-kill (+workspace-current-name)))
         (+workspace-switch +mu4e-workspace-name t))
     (setq +mu4e--old-wconf (current-window-configuration))
     (delete-other-windows)
@@ -91,13 +94,13 @@ default/fallback account."
           (switch-to-buffer view-buffer)
         (if (and headers-buffer (not (eq headers-buffer (current-buffer))))
             (switch-to-buffer headers-buffer)
-          (mu4e))))))
+          (mu4e background))))))
 
 ;;;###autoload
 (defun +mu4e/compose ()
   "Compose a new email."
   (interactive)
-  ;; TODO Interactively select email account
+  ;; TODO: Interactively select email account
   (call-interactively #'mu4e-compose-new))
 
 (defun +mu4e--get-string-width (str)
@@ -113,37 +116,47 @@ will also be the width of all other printable characters."
       (insert str)
       (car (window-text-pixel-size)))))
 
-(cl-defun +mu4e-normalised-icon (name &key set color height v-adjust)
+(cl-defun +mu4e-normalised-icon (name &key set color height v-adjust space-right)
   "Convert :icon declaration to icon"
-  (let* ((icon-set (intern (concat "all-the-icons-" (or set "faicon"))))
+  (let* ((icon-set (intern (concat "nerd-icons-" (or set "faicon"))))
          (v-adjust (or v-adjust 0.02))
          (height (or height 0.8))
          (icon (if color
-                   (apply icon-set `(,name :face ,(intern (concat "all-the-icons-" color)) :height ,height :v-adjust ,v-adjust))
+                   (apply icon-set `(,name :face ,(intern (concat "nerd-icons-" color)) :height ,height :v-adjust ,v-adjust))
                  (apply icon-set `(,name  :height ,height :v-adjust ,v-adjust))))
          (icon-width (+mu4e--get-string-width icon))
          (space-width (+mu4e--get-string-width " "))
-         (space-factor (- 2 (/ (float icon-width) space-width))))
-    (concat (propertize " " 'display `(space . (:width ,space-factor))) icon)))
+         (space-factor (- 2 (/ (float icon-width) space-width)))
+         ;; always pad the left
+         (space-left (propertize " " 'display `(space . (:width ,space-factor))))
+         ;; optionally pad the right
+         (space-right (if space-right space-left "")))
+    (format "%s%s%s" space-left icon space-right)))
 
 ;; Set up all the fancy icons
 ;;;###autoload
 (defun +mu4e-initialise-icons ()
   (setq mu4e-use-fancy-chars t
-        mu4e-headers-draft-mark      (cons "D" (+mu4e-normalised-icon "pencil"))
-        mu4e-headers-flagged-mark    (cons "F" (+mu4e-normalised-icon "flag"))
-        mu4e-headers-new-mark        (cons "N" (+mu4e-normalised-icon "sync" :set "material" :height 0.8 :v-adjust -0.10))
-        mu4e-headers-passed-mark     (cons "P" (+mu4e-normalised-icon "arrow-right"))
-        mu4e-headers-replied-mark    (cons "R" (+mu4e-normalised-icon "reply"))
+
+        mu4e-modeline-all-clear      (cons "C:" (+mu4e-normalised-icon "nf-md-check" :set "mdicon" :height 1.0 :space-right t)) ;;󰄬
+        mu4e-modeline-all-read       (cons "R:" (+mu4e-normalised-icon "nf-md-email_check" :set "mdicon" :height 1.0 :space-right t)) ;;󰪱
+        mu4e-modeline-unread-items   (cons "U:" (+mu4e-normalised-icon "nf-md-email_alert" :set "mdicon" :height 1.0 :space-right t)) ;;󰛏
+        mu4e-modeline-new-items      (cons "N:" (+mu4e-normalised-icon "nf-md-sync" :set "mdicon" :height 1.0 :space-right t)) ;;󰓦
+
+        mu4e-headers-draft-mark      (cons "D" (+mu4e-normalised-icon "nf-fa-pencil"))
+        mu4e-headers-flagged-mark    (cons "F" (+mu4e-normalised-icon "nf-fa-flag"))
+        mu4e-headers-new-mark        (cons "N" (+mu4e-normalised-icon "nf-md-sync" :set "mdicon" :v-adjust -0.10))
+        mu4e-headers-passed-mark     (cons "P" (+mu4e-normalised-icon "nf-fa-arrow_right"))
+        mu4e-headers-replied-mark    (cons "R" (+mu4e-normalised-icon "nf-fa-reply"))
         mu4e-headers-seen-mark       (cons "S" "") ;(+mu4e-normalised-icon "eye" :height 0.6 :v-adjust 0.07 :color "dsilver"))
-        mu4e-headers-trashed-mark    (cons "T" (+mu4e-normalised-icon "trash"))
-        mu4e-headers-attach-mark     (cons "a" (+mu4e-normalised-icon "file-text-o" :color "silver"))
-        mu4e-headers-encrypted-mark  (cons "x" (+mu4e-normalised-icon "lock"))
-        mu4e-headers-signed-mark     (cons "s" (+mu4e-normalised-icon "certificate" :height 0.7 :color "dpurple"))
-        mu4e-headers-unread-mark     (cons "u" (+mu4e-normalised-icon "eye-slash" :v-adjust 0.05))
-        mu4e-headers-list-mark       (cons "l" (+mu4e-normalised-icon "sitemap" :set "faicon"))
-        mu4e-headers-personal-mark   (cons "p" (+mu4e-normalised-icon "user"))
-        mu4e-headers-calendar-mark   (cons "c" (+mu4e-normalised-icon "calendar"))))
+        mu4e-headers-trashed-mark    (cons "T" (+mu4e-normalised-icon "nf-fa-trash"))
+        mu4e-headers-attach-mark     (cons "a" (+mu4e-normalised-icon "nf-fa-file_text_o" :color "silver"))
+        mu4e-headers-encrypted-mark  (cons "x" (+mu4e-normalised-icon "nf-fa-lock"))
+        mu4e-headers-signed-mark     (cons "s" (+mu4e-normalised-icon "nf-fa-certificate" :height 0.7 :color "dpurple"))
+        mu4e-headers-unread-mark     (cons "u" (+mu4e-normalised-icon "nf-fa-eye_slash" :v-adjust 0.05))
+        mu4e-headers-list-mark       (cons "l" (+mu4e-normalised-icon "nf-fa-sitemap" :set "faicon"))
+        mu4e-headers-personal-mark   (cons "p" (+mu4e-normalised-icon "nf-fa-user"))
+        mu4e-headers-calendar-mark   (cons "c" (+mu4e-normalised-icon "nf-fa-calendar"))))
 
 (defun +mu4e-colorize-str (str &optional unique herring)
   "Apply a face from `+mu4e-header-colorized-faces' to STR.
@@ -212,7 +225,7 @@ is tomorrow.  With two prefixes, select the deadline."
           (when (re-search-forward sec nil t)
             (let (org-M-RET-may-split-line
                   (lev (org-outline-level))
-                  (folded-p (invisible-p (point-at-eol)))
+                  (folded-p (invisible-p (line-end-position)))
                   (from (plist-get msg :from)))
               (when (consp (car from)) ; Occurs when using mu4e 1.8+.
                 (setq from (car from)))
@@ -266,9 +279,8 @@ attach a file, or select a folder to open dired in and select file attachments
 (using `dired-mu4e-attach-ctrl-c-ctrl-c').
 
 When otherwise called, open a dired buffer and enable `dired-mu4e-attach-ctrl-c-ctrl-c'."
-  ;; TODO add ability to attach files (+dirs) as a single (named) archive
+  ;; TODO: add ability to attach files (+dirs) as a single (named) archive
   (interactive "p")
-  (+mu4e-compose-org-msg-handle-toggle (/= 1 files-to-attach))
   (pcase major-mode
     ((or 'mu4e-compose-mode 'org-msg-edit-mode)
      (let ((mail-buffer (current-buffer))
@@ -299,7 +311,7 @@ When otherwise called, open a dired buffer and enable `dired-mu4e-attach-ctrl-c-
          (progn
            (message "No files marked, aborting.")
            (kill-buffer-and-window))
-       (if-let ((mail-target-buffer (bound-and-true-p dired-mail-buffer)))
+       (if-let* ((mail-target-buffer (bound-and-true-p dired-mail-buffer)))
            (progn (kill-buffer-and-window)
                   (switch-to-buffer mail-target-buffer))
          (if (and (+mu4e-current-buffers)
@@ -352,7 +364,7 @@ When otherwise called, open a dired buffer and enable `dired-mu4e-attach-ctrl-c-
   ;; (prolusion-mail-hide)
   (cond
    ((and (modulep! :ui workspaces) (+workspace-exists-p +mu4e-workspace-name))
-    (+workspace/delete +mu4e-workspace-name))
+    (+workspace/kill +mu4e-workspace-name))
 
    (+mu4e--old-wconf
     (set-window-configuration +mu4e--old-wconf)
@@ -364,10 +376,10 @@ When otherwise called, open a dired buffer and enable `dired-mu4e-attach-ctrl-c-
 within a context, set `user-mail-address' to an alias found in the 'To' or
 'From' headers of the parent message if present, or prompt the user for a
 preferred alias"
-  (when-let ((addresses (if (or mu4e-contexts +mu4e-personal-addresses)
-                            (and (> (length +mu4e-personal-addresses) 1)
-                                 +mu4e-personal-addresses)
-                          (mu4e-personal-addresses))))
+  (when-let* ((addresses (if (or mu4e-contexts +mu4e-personal-addresses)
+                             (and (> (length +mu4e-personal-addresses) 1)
+                                  +mu4e-personal-addresses)
+                           (mu4e-personal-addresses))))
     (setq user-mail-address
           (if mu4e-compose-parent-message
               (if (version<= "1.8" mu4e-mu-version)

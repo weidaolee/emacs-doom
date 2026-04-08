@@ -19,9 +19,17 @@ don't have a :trigger property in `+file-templates-alist'.")
     ("/Makefile$"             :mode makefile-gmake-mode)
     ;; elisp
     ("/\\.dir-locals\\.el$")
-    ("/\\.doomrc$"
+    ("/\\.doom$"
      :trigger "__doomrc"
      :mode emacs-lisp-mode)
+    ("/\\.doom\\(?:module\\)?$"
+     :trigger "__doommodulerc"
+     :mode emacs-lisp-mode)
+    ("/\\.doom\\.el$"
+     :trigger "__doomrc_el"
+     :mode emacs-lisp-mode)
+    ;; TODO: .doomprofile
+    ;; TODO: profiles.el/doom-profiles.el
     ("/packages\\.el$" :when +file-templates-in-emacs-dirs-p
      :trigger "__doom-packages"
      :mode emacs-lisp-mode)
@@ -83,8 +91,8 @@ don't have a :trigger property in `+file-templates-alist'.")
     ("\\.class\\.php$" :trigger "__.class.php" :mode php-mode)
     (php-mode)
     ;; Python
-    ;; TODO ("tests?/test_.+\\.py$" :trigger "__" :mode nose-mode)
-    ;; TODO ("/setup\\.py$" :trigger "__setup.py" :mode python-mode)
+    ;; TODO: ("tests?/test_.+\\.py$" :trigger "__" :mode nose-mode)
+    ;; TODO: ("/setup\\.py$" :trigger "__setup.py" :mode python-mode)
     (python-mode)
     ;; Ruby
     ("/lib/.+\\.rb$"      :trigger "__module"   :mode ruby-mode :project t)
@@ -124,7 +132,8 @@ information.")
   (let ((pred (car rule))
         (plist (cdr rule)))
     (and (or (and (symbolp pred)
-                  (eq major-mode pred))
+                  (or (eq major-mode pred)
+                      (memq pred (get major-mode 'derived-mode-extra-parents))))
              (and (stringp pred)
                   (stringp buffer-file-name)
                   (string-match-p pred buffer-file-name)))
@@ -146,9 +155,13 @@ must be non-read-only, empty, and there must be a rule in
        (not (file-exists-p buffer-file-name))  ; ...is a new file
        (not (buffer-modified-p))    ; ...hasn't been modified
        (null (buffer-base-buffer))  ; ...isn't an indirect clone
-       (when-let (rule (cl-find-if #'+file-template-p +file-templates-alist))
-         (apply #'+file-templates--expand rule))))
+       (+file-templates/apply)))
 
+(defun +file-templates/apply ()
+  "Actually expand a file template if one exists"
+  (interactive)
+  (when-let* ((rule (cl-find-if #'+file-template-p +file-templates-alist)))
+    (apply #'+file-templates--expand rule)))
 
 ;;
 ;;; Bootstrap

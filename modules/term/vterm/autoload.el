@@ -27,7 +27,7 @@ Returns the vterm buffer."
              (kill-buffer buffer))
            (when (window-live-p window)
              (delete-window window))))
-       (if-let (win (get-buffer-window buffer-name))
+       (if-let* ((win (get-buffer-window buffer-name)))
            (delete-window win)
          (let ((buffer (or (cl-loop for buf in (doom-buffers-in-mode 'vterm-mode)
                                     if (equal (buffer-local-value '+vterm--id buf)
@@ -35,9 +35,9 @@ Returns the vterm buffer."
                                     return buf)
                            (get-buffer-create buffer-name))))
            (with-current-buffer buffer
-             (setq-local +vterm--id buffer-name)
              (unless (eq major-mode 'vterm-mode)
-               (vterm-mode)))
+               (vterm-mode))
+             (setq-local +vterm--id buffer-name))
            (pop-to-buffer buffer)))
        (get-buffer buffer-name)))))
 
@@ -53,7 +53,7 @@ Returns the vterm buffer."
    arg
    (lambda()
      (require 'vterm)
-     ;; HACK forces vterm to redraw, fixing strange artefacting in the tty.
+     ;; HACK: Force vterm to redraw to fix artefacting in tty.
      (save-window-excursion
        (pop-to-buffer "*scratch*"))
      (let (display-buffer-alist)

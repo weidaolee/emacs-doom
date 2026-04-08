@@ -64,7 +64,7 @@ PATTERN is a vim-style regexp. FLAGS is an optional string of characters.
 Supports the following flags:
 
 g   Repeat alignment on all matches in each line"
-  (interactive "<r><//>")
+  (interactive "<r></>")
   (align-regexp
    beg end
    (concat "\\(\\s-*\\)" (evil-transform-vim-style-regexp pattern))
@@ -78,7 +78,7 @@ PATTERN is a vim-style regexp. FLAGS is an optional string of characters.
 Supports the following flags:
 
 g   Repeat alignment on all matches in each line"
-  (interactive "<r><//>")
+  (interactive "<r></>")
   (align-regexp
    beg end
    (concat "\\(" (evil-transform-vim-style-regexp pattern) "\\)")
@@ -86,7 +86,7 @@ g   Repeat alignment on all matches in each line"
 
 ;; ;;;###autoload (autoload '+evil:sort "editor/evil/autoload/ex" nil nil)
 ;; (evil-define-command +evil:sort (beg end &optional pattern flags reverse)
-;;   (interactive "<r><//><!>"))
+;;   (interactive "<r></><!>"))
 
 ;;;###autoload (autoload '+evil:open-scratch-buffer "editor/evil/autoload/ex" nil t)
 (evil-define-operator +evil:open-scratch-buffer (bang)
@@ -165,8 +165,7 @@ buffers."
   "Look up documentation for QUERY.
 
 If QUERY is in the format of an ex command, it will map it to the underlying
-function and open its documentation with `helpful-function'. Otherwise, it will
-search for it with `apropos'.
+function and open its documentation.
 
 If QUERY is empty, this runs the equivalent of 'M-x apropos'. If BANG is
 non-nil, a search is preformed against Doom's manual (with
@@ -180,8 +179,16 @@ non-nil, a search is preformed against Doom's manual (with
               (or (command-remapping #'apropos)
                   #'apropos)))
             ((string-match "^ *:\\([^ ]+\\)$" query)
-             (helpful-function
-              (evil-ex-completed-binding (match-string 1 query))))
+             (funcall (or (command-remapping #'describe-function)
+                          #'describe-function)
+                      (evil-ex-completed-binding (match-string 1 query))))
+            ((or (string-match "^ *[^a-z0-9-_]$" query)
+                 (condition-case nil
+                     (ignore (string-match-p query ""))
+                   (invalid-regexp t)))
+             (user-error "Invalid query: %S" query))
+            ((< (string-width query) 3)
+             (user-error "Query too short (must be > 2 characters): %S" query))
             ((message "Searching for %S, this may take a while..." query)
              (apropos query t))))))
 

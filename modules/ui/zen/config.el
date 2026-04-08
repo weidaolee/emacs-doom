@@ -1,15 +1,19 @@
 ;;; ui/zen/config.el -*- lexical-binding: t; -*-
 
-(defvar +zen-mixed-pitch-modes '(adoc-mode rst-mode markdown-mode org-mode)
-  "What major-modes to enable `mixed-pitch-mode' in with `writeroom-mode'.")
+(defcustom +zen-mixed-pitch-modes '(adoc-mode rst-mode markdown-mode org-mode)
+  "What major-modes to enable `mixed-pitch-mode' in with `writeroom-mode'."
+  :type '(repeat symbol)
+  :group '+zen)
 
-(defvar +zen-text-scale 2
-  "The text-scaling level for `writeroom-mode'.")
+(defcustom +zen-text-scale 2.0
+  "The text-scaling level for `writeroom-mode'."
+  :type 'float
+  :group '+zen)
 
-(defvar +zen-window-divider-size 4
-  "Pixel size of window dividers when `writeroom-mode' is active.")
-
-(defvar +zen--old-window-divider-size nil)
+(defcustom +zen-window-divider-size 4
+  "Pixel size of window dividers when `writeroom-mode' is active."
+  :type 'integer
+  :group '+zen)
 
 
 ;;
@@ -23,54 +27,63 @@
   (setq writeroom-global-effects nil)
   (setq writeroom-maximize-window nil)
 
-  (add-hook! 'writeroom-mode-hook :append
-    (defun +zen-enable-text-scaling-mode-h ()
+  (add-hook! 'writeroom-local-effects :append
+    (defun +zen-enable-text-scaling-mode-h (arg)
       "Enable `mixed-pitch-mode' when in `+zen-mixed-pitch-modes'."
       (when (/= +zen-text-scale 0)
-        (text-scale-set (if writeroom-mode +zen-text-scale 0))
+        (text-scale-set (if (= arg 1) +zen-text-scale 0))
         (visual-fill-column-adjust))))
-
-  (add-hook! 'global-writeroom-mode-hook
-    (defun +zen-toggle-large-window-dividers-h ()
-      "Make window dividers larger and easier to see."
-      (when (bound-and-true-p window-divider-mode)
-        (if writeroom-mode
-            (setq +zen--old-window-divider-size
-                  (cons window-divider-default-bottom-width
-                        window-divider-default-right-width)
-                  window-divider-default-bottom-width +zen-window-divider-size
-                  window-divider-default-right-width +zen-window-divider-size)
-          (when +zen--old-window-divider-size
-            (setq window-divider-default-bottom-width (car +zen--old-window-divider-size)
-                  window-divider-default-right-width (cdr +zen--old-window-divider-size))))
-        (window-divider-mode +1))))
 
   ;; Adjust margins when text size is changed
   (advice-add #'text-scale-adjust :after #'visual-fill-column-adjust))
 
 
 (use-package! mixed-pitch
-  :hook (writeroom-mode . +zen-enable-mixed-pitch-mode-h)
+  :defer t
+  :init
+  (add-hook! 'writeroom-local-effects
+    (defun +zen-enable-mixed-pitch-mode-h (arg)
+      "Enable `mixed-pitch-mode' when in `+zen-mixed-pitch-modes'."
+      (if (apply #'derived-mode-p +zen-mixed-pitch-modes)
+          (mixed-pitch-mode arg))))
   :config
-  (defun +zen-enable-mixed-pitch-mode-h ()
-    "Enable `mixed-pitch-mode' when in `+zen-mixed-pitch-modes'."
-    (when (apply #'derived-mode-p +zen-mixed-pitch-modes)
-      (mixed-pitch-mode (if writeroom-mode +1 -1))))
+  (dolist (face '(solaire-line-number-face
+                  org-date
+                  org-footnote
+                  org-special-keyword
+                  org-property-value
+                  org-ref-cite-face
+                  org-tag
+                  org-todo-keyword-todo
+                  org-todo-keyword-habt
+                  org-todo-keyword-done
+                  org-todo-keyword-wait
+                  org-todo-keyword-kill
+                  org-todo-keyword-outd
+                  org-todo
+                  org-done
+                  font-lock-comment-face))
+    (add-to-list 'mixed-pitch-fixed-pitch-faces face)))
 
-  (pushnew! mixed-pitch-fixed-pitch-faces
-            'solaire-line-number-face
-            'org-date
-            'org-footnote
-            'org-special-keyword
-            'org-property-value
-            'org-ref-cite-face
-            'org-tag
-            'org-todo-keyword-todo
-            'org-todo-keyword-habt
-            'org-todo-keyword-done
-            'org-todo-keyword-wait
-            'org-todo-keyword-kill
-            'org-todo-keyword-outd
-            'org-todo
-            'org-done
-            'font-lock-comment-face))
+
+(use-package! focus
+  :when (modulep! +focus)
+  :defer t
+  :init
+  (add-hook 'writeroom-local-effects #'focus-mode t))
+
+
+(use-package! lsp-focus
+  :when (modulep! +focus)
+  :when (modulep! :tools lsp -eglot)
+  :hook (focus-mode . +zen-lsp-focus-mode-h)
+  :config
+  (defun +zen-lsp-focus-mode-h ()
+    ;; HACK: lsp-focus-mode doesn't do its own checks, throwing an error if
+    ;;   lsp-mode isn't active or the given client doesn't support
+    ;;   foldingRangeProvider, so we do our own checks.
+    ;; REVIEW: PR a safe activator function upstream, maybe?
+    (when (bound-and-true-p lsp-mode)
+      (if (lsp--capability "foldingRangeProvider")
+          (lsp-focus-mode +1)
+        (doom-log "lsp-focus: client doesn't support foldingRangeProvider, falling back to naive boundary detection")))))

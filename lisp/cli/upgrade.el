@@ -2,8 +2,7 @@
 ;;; Commentary:
 ;;; Code:
 
-(load! "packages")
-(load! "compile")
+(doom-require 'doom-lib 'packages)
 
 
 ;;
@@ -20,23 +19,23 @@
 ;;; Commands
 
 (defcli! ((upgrade up))
-    ((packages?  ("-p" "--packages") "Only upgrade packages, not Doom")
+    ((aot?       ("--aot") "Natively compile packages ahead-of-time (if available)")
+     (packages?  ("-p" "--packages") "Only upgrade packages, not Doom")
      (jobs       ("-j" "--jobs" num) "How many CPUs to use for native compilation")
+     (nobuild?   ("-B") "Don't rebuild packages when hostname or Emacs version has changed")
      &context context)
-  "Updates Doom and packages.
+  "Updates Doom's core, module libraries, and installed packages.
 
-This requires that ~/.emacs.d is a git repo, and is the equivalent of the
-following shell commands:
+A convenience command for updating Doom's core and pinned modules/module
+libraries. It is the equivalent of the following shell commands:
 
-    cd ~/.emacs.d
-    git pull --rebase
-    doom clean
-    doom sync -u"
-  (let* ((force? (doom-cli-context-suppress-prompts-p context))
-         (sync-cmd (append '("sync" "-u") (if jobs `("-j" ,num)))))
+    $ cd ~/.emacs.d
+    $ git pull --rebase
+    $ doom sync -u"
+  (let ((force? (doom-cli-context-suppress-prompts-p context)))
     (cond
      (packages?
-      ;; HACK It's messy to use straight to upgrade straight, due to the
+      ;; HACK: It's messy to use straight to upgrade straight, due to the
       ;;   potential for backwards incompatibility, so we staticly check if
       ;;   Doom's `package!' declaration for straight has changed. If it has,
       ;;   delete straight so 'doom sync' will install the new version for us.
@@ -47,19 +46,22 @@ following shell commands:
           (print! (item "Preparing straight for an update"))
           (delete-directory (doom-path straight-base-dir "straight/repos/straight.el")
                             'recursive)))
-      (call! sync-cmd)
+      (call! (append '("sync" "-u")
+                     (if aot? '("--aot"))
+                     (if nobuild? '("-B"))
+                     (if jobs `("-j" ,jobs))))
       (print! (success "Finished upgrading Doom Emacs")))
 
      ((doom-cli-upgrade context force? force?)
       ;; Reload Doom's CLI & libraries, in case there were any upstream changes.
       ;; Major changes will still break, however
       (print! (item "Reloading Doom Emacs"))
+      (doom-cli-context-put context 'upgrading t)
       (exit! "doom" "upgrade" "-p"
+             (if aot? "--aot")
+             (if nobuild? "-B")
              (if force? "--force")
-             (if jobs (format "--jobs=%d" jobs))))
-
-     ((print! "Doom is up-to-date!")
-      (call! sync-cmd)))))
+             (if jobs (format "--jobs=%d" jobs)))))))
 
 
 ;;
@@ -77,7 +79,7 @@ following shell commands:
            ;; `vc-git--symbolic-ref') won't work; it can't deal with submodules.
            (branch (replace-regexp-in-string
                     "^\\(?:[^/]+/[^/]+/\\)?\\(.+\\)\\(?:~[0-9]+\\)?$" "\\1"
-                    (cdr (sh! "git" "name-rev" "--name-only" "HEAD"))))
+                    (cdr (sh! "git" "name-rev" "--name-only" "--refs=refs/heads/*" "HEAD"))))
            (target-remote (format "%s_%s" doom-upgrade-remote branch)))
       (unless branch
         (error (if (file-exists-p! ".git" doom-emacs-dir)
@@ -85,7 +87,7 @@ following shell commands:
                  "Couldn't detect what branch you're on. Is Doom detached?")))
 
       ;; We assume that a dirty .emacs.d is intentional and abort
-      (when-let (dirty (doom-upgrade--working-tree-dirty-p default-directory))
+      (when-let* ((dirty (doom-upgrade--working-tree-dirty-p default-directory)))
         (if (not force-p)
             (user-error "%s\n\n%s\n\n %s"
                         (format "Refusing to upgrade because %S has been modified."
@@ -96,12 +98,14 @@ following shell commands:
           (sh! "git" "reset" "--hard" (format "origin/%s" branch))
           (sh! "git" "clean" "-ffd")))
 
+      ;; In case of leftover state from a partial/incomplete 'doom upgrade'
+      (sh! "git" "branch" "-D" target-remote)
       (sh! "git" "remote" "remove" doom-upgrade-remote)
       (unwind-protect
-          (let (result)
+          (progn
             (or (zerop (car (sh! "git" "remote" "add" doom-upgrade-remote doom-upgrade-url)))
                 (error "Failed to add %s to remotes" doom-upgrade-remote))
-            (or (zerop (car (setq result (sh! "git" "fetch" "--force" "--tags" doom-upgrade-remote (format "%s:%s" branch target-remote)))))
+            (or (zerop (car (sh! "git" "fetch" "--force" "--tags" doom-upgrade-remote (format "%s:%s" branch target-remote))))
                 (error "Failed to fetch from upstream"))
 
             (let ((this-rev (cdr (sh! "git" "rev-parse" "HEAD")))
@@ -136,11 +140,10 @@ following shell commands:
                     (ignore (print! (error "Aborted")))
                   (print! (start "Upgrading Doom Emacs..."))
                   (print-group!
-                   (doom-compile-clean)
-                   (doom-cli-context-put context 'straight-recipe (doom-upgrade--get-straight-recipe))
-                   (or (and (zerop (car (sh! "git" "reset" "--hard" target-remote)))
-                            (equal (cdr (sh! "git" "rev-parse" "HEAD")) new-rev))
-                       (error "Failed to check out %s" (substring new-rev 0 10)))))))))
+                    (doom-cli-context-put context 'straight-recipe (doom-upgrade--get-straight-recipe))
+                    (or (and (zerop (car (sh! "git" "reset" "--hard" target-remote)))
+                             (equal (cdr (sh! "git" "rev-parse" "HEAD")) new-rev))
+                        (error "Failed to check out %s" (substring new-rev 0 10)))))))))
         (ignore-errors
           (sh! "git" "branch" "-D" target-remote)
           (sh! "git" "remote" "remove" doom-upgrade-remote))))))

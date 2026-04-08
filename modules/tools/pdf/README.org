@@ -12,7 +12,7 @@ PDF files. The key difference being pages are not pre-rendered, but instead
 rendered on-demand and stored in memory; a much faster approach, especially for
 larger PDFs.
 
-Displaying PDF files is just one function of [[doom-package:pdf-tools]]. See [[https://github.com/politza/pdf-tools][its project website]]
+Displaying PDF files is just one function of [[doom-package:pdf-tools]]. See [[https://github.com/vedang/pdf-tools][its project website]]
 for details and videos.
 
 ** Maintainers
@@ -24,10 +24,11 @@ for details and videos.
 ** Packages
 - [[doom-package:pdf-tools]]
 - [[doom-package:saveplace-pdf-view]]
+- [[doom-package:org-pdftools]] if [[doom-module::lang org]]
 
 ** TODO Hacks
 #+begin_quote
- 🔨 This module's hacks haven't been documented yet. [[doom-contrib-module:][Document them?]]
+ 󱌣 This module's hacks haven't been documented yet. [[doom-contrib-module:][Document them?]]
 #+end_quote
 
 ** TODO Changelog
@@ -41,6 +42,11 @@ This module requires the =epdfinfo= program. Unless you're on Windows, the
 [[doom-package:pdf-tools]] plugin will (re)build this program for you, if you issue the ~M-x
 pdf-tools-install~ command. See the next section for instructions on how to
 build the =epdfinfo= program on Windows.
+
+Build instructions for various OSes can be found [[https://github.com/vedang/pdf-tools?tab=readme-ov-file#installing-the-epdfinfo-server-from-package-managers][on the pdf-tools README]].
+
+** Building epdfinfo on Guix
+The [[https://packages.guix.gnu.org/packages/emacs-pdf-tools][emacs-pdf-tools]] package provides a prebuilt =epdfinfo=.
 
 ** Building =epdfinfo= on Windows
 1. [[https://www.msys2.org/][Install MSYS2]] and update the package database and core packages using the
@@ -60,7 +66,7 @@ build the =epdfinfo= program on Windows.
 3. Install PDF tools in Emacs, but do not try to compile the server. Instead,
    get a separate copy of the source somewhere else:
    #+begin_src sh
-   git clone https://github.com/politza/pdf-tools
+   git clone https://github.com/vedang/pdf-tools
    #+end_src
 
 4. Open mingw64 shell (Note: You must use mingw64.exe and not msys2.exe)
@@ -99,12 +105,12 @@ build the =epdfinfo= program on Windows.
 
 * TODO Usage
 #+begin_quote
- 🔨 This module has no usage documentation yet. [[doom-contrib-module:][Write some?]]
+ 󱌣 This module has no usage documentation yet. [[doom-contrib-module:][Write some?]]
 #+end_quote
 
 * TODO Configuration
 #+begin_quote
- 🔨 This module has no configuration documentation yet. [[doom-contrib-module:][Write some?]]
+ 󱌣 This module has no configuration documentation yet. [[doom-contrib-module:][Write some?]]
 #+end_quote
 
 * Troubleshooting
@@ -115,5 +121,5 @@ build the =epdfinfo= program on Windows.
 
 * TODO Appendix
 #+begin_quote
- 🔨 This module has no appendix yet. [[doom-contrib-module:][Write one?]]
+ 󱌣 This module has no appendix yet. [[doom-contrib-module:][Write one?]]
 #+end_quote

@@ -13,15 +13,13 @@ SAS, Julia and Stata.
 ** Module flags
 - +stan ::
   Enable support for ~stan-mode~, including code completion and syntax checking.
-- +tree-sitter ::
-  Leverages tree-sitter for better syntax highlighting and structural text
-  editing. Currently only supports ~ess-r-mode~. Requires [[doom-module::tools tree-sitter]].
 
 ** Packages
 - [[doom-package:ess]]
-- [[doom-package:ess-R-data-view]]
+- [[doom-package:ess-view-data]]
 - [[doom-package:polymode]]
 - [[doom-package:poly-R]]
+- [[doom-package:quarto-mode]]
 - if [[doom-module:+stan]]
   - [[doom-package:company-stan]] if [[doom-module::completion company]]
   - [[doom-package:eldoc-stan]]
@@ -45,7 +43,7 @@ This module has several optional dependencies:
 
 * TODO Usage
 #+begin_quote
- 🔨 /This module's usage documentation is incomplete./ [[doom-contrib-module:][Complete it?]]
+ 󱌣 /This module's usage documentation is incomplete./ [[doom-contrib-module:][Complete it?]]
 #+end_quote
 
 ** :map ess-doc-map
@@ -92,7 +90,7 @@ This module has several optional dependencies:
 
 * TODO Configuration
 #+begin_quote
- 🔨 This module has no configuration documentation yet. [[doom-contrib-module:][Write some?]]
+ 󱌣 This module has no configuration documentation yet. [[doom-contrib-module:][Write some?]]
 #+end_quote
 
 * Troubleshooting
@@ -103,5 +101,5 @@ This module has several optional dependencies:
 
 * TODO Appendix
 #+begin_quote
- 🔨 This module has no appendix yet. [[doom-contrib-module:][Write one?]]
+ 󱌣 This module has no appendix yet. [[doom-contrib-module:][Write one?]]
 #+end_quote

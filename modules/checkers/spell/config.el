@@ -5,16 +5,15 @@
 
 ;; `elisp-mode' is loaded at startup. In order to lazy load its config we need
 ;; to pretend it isn't loaded
-(delq! 'ispell features)
+(cl-callf2 delq 'ispell features)
 
 (global-set-key [remap ispell-word] #'+spell/correct)
 
 (after! ispell
   ;; Don't spellcheck org blocks
-  (pushnew! ispell-skip-region-alist
-            '(":\\(PROPERTIES\\|LOGBOOK\\):" . ":END:")
-            '("#\\+BEGIN_SRC" . "#\\+END_SRC")
-            '("#\\+BEGIN_EXAMPLE" . "#\\+END_EXAMPLE"))
+  (add-to-list 'ispell-skip-region-alist '(":\\(PROPERTIES\\|LOGBOOK\\):" . ":END:"))
+  (add-to-list 'ispell-skip-region-alist '("#\\+BEGIN_SRC" . "#\\+END_SRC"))
+  (add-to-list 'ispell-skip-region-alist '("#\\+BEGIN_EXAMPLE" . "#\\+END_EXAMPLE"))
 
   ;; Enable either aspell, hunspell or enchant.
   ;;   If no module flags are given, enable either aspell, hunspell or enchant
@@ -60,13 +59,17 @@
     (`enchant
      (setq ispell-program-name "enchant-2"))
 
-    (_ (doom-log "Spell checker not found. Either install `aspell', `hunspell' or `enchant'"))))
+    (_ (doom-log "Spell checker not found. Either install `aspell', `hunspell' or `enchant'")))
+
+  (if (executable-find ispell-program-name)
+      (ispell-check-version)
+    (warn "Can't find %s in your $PATH" ispell-program-name)))
 
 
 ;;
 ;;; Implementations
 
-(eval-if! (not (modulep! +flyspell))
+(static-if (modulep! -flyspell)
 
     (use-package! spell-fu
       :when (executable-find "aspell")
@@ -128,44 +131,22 @@
               font-lock-variable-name-face)))
         "Faces in certain major modes that spell-fu will not spellcheck.")
 
-      (setq spell-fu-directory (concat doom-data-dir "spell-fu"))
+      (setq spell-fu-directory (file-name-concat doom-profile-data-dir "spell-fu"))
       (when (modulep! +everywhere)
         (add-hook! '(yaml-mode-hook
                      conf-mode-hook
                      prog-mode-hook)
                    #'spell-fu-mode))
       :config
-      ;; TODO PR this fix upstream!
-      (defadvice! +spell--fix-face-detection-a (fn &rest args)
-        "`spell-fu--faces-at-point' uses face detection that won't penetrary
-overlays (like `hl-line'). This makes `spell-fu-faces-exclude' demonstrably less
-useful when it'll still spellcheck excluded faces on any line that `hl-line' is
-displayed on, even momentarily."
-        :around #'spell-fu--faces-at-point
-        (letf! (defun get-char-property (pos prop &optional obj)
-                 (or (plist-get (text-properties-at pos) prop)
-                     (funcall get-char-property pos prop obj)))
-          (apply fn args)))
-
-      (defadvice! +spell--create-word-dict-a (_word words-file _action)
-        "Prevent `spell-fu--word-add-or-remove' from throwing non-existant
-directory errors when writing a personal dictionary file (by creating the
-directory first)."
-        :before #'spell-fu--word-add-or-remove
-        (unless (file-exists-p words-file)
-          (make-directory (file-name-directory words-file) t)
-          (with-temp-file words-file
-            (insert (format "personal_ws-1.1 %s 0\n" ispell-dictionary)))))
-
       (add-hook! 'spell-fu-mode-hook
         (defun +spell-init-excluded-faces-h ()
           "Set `spell-fu-faces-exclude' according to `+spell-excluded-faces-alist'."
-          (when-let (excluded (cdr (cl-find-if #'derived-mode-p +spell-excluded-faces-alist :key #'car)))
+          (when-let* ((excluded (cdr (cl-find-if #'derived-mode-p +spell-excluded-faces-alist :key #'car))))
             (setq-local spell-fu-faces-exclude excluded))))
 
-      ;; TODO custom `spell-fu-check-range' function to reduce false positives
-      ;;      more intelligently, or modify `spell-fu-word-regexp' to include
-      ;;      non-latin charactersets.
+      ;; TODO: custom `spell-fu-check-range' function to reduce false positives
+      ;;   more intelligently, or modify `spell-fu-word-regexp' to include
+      ;;   non-latin charactersets.
       )
 
   (use-package! flyspell ; built-in

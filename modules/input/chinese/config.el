@@ -3,7 +3,7 @@
 (use-package! pyim
   :after-call after-find-file pre-command-hook
   :init
-  (setq pyim-dcache-directory (concat doom-cache-dir "pyim/"))
+  (setq pyim-dcache-directory (file-name-concat doom-profile-cache-dir "pyim/"))
   :config
   (setq pyim-page-tooltip t
         default-input-method "pyim")
@@ -24,11 +24,13 @@
                          #'evil-pinyin--build-regexp-string
                        #'pyim-cregexp-build)))
         ((modulep! :completion ivy)
+         (autoload 'pyim-cregexp-ivy "pyim-cregexp-utils")
          (setq ivy-re-builders-alist '((t . pyim-cregexp-ivy))))))
 
 
 (use-package! liberime
   :when (modulep! +rime)
+  :after pyim
   :init
   (setq liberime-auto-build t
         liberime-user-data-dir (file-name-concat doom-cache-dir "rime")))

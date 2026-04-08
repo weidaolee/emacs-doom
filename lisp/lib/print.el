@@ -84,15 +84,16 @@ and `format!' into colored output, where COLOR is any car of this list (or
                  (doom-print--indent
                   (if args (apply #'format str args) str)
                   "> ")))
-    (path    . abbreviate-file-name)
+    (path    . (lambda (&rest segments)
+                 (abbreviate-file-name (apply #'doom-path segments))))
     (symbol  . symbol-name)
     (relpath . (lambda (str &optional dir)
                  (if (or (not str)
                          (not (stringp str))
                          (string-blank-p str))
                      str
-                   (let ((dir (or dir (file-truename default-directory)))
-                         (str (file-truename str)))
+                   (let* ((dir (or dir default-directory))
+                          (str (expand-file-name str dir)))
                      (if (file-in-directory-p str dir)
                          (file-relative-name str dir)
                        (abbreviate-file-name str))))))
@@ -116,6 +117,12 @@ Any of these classes can be called like functions from within `format!' and
   "Whether to print colors/styles with ANSI codes or with text properties.
 
 Accepts `ansi' and `text-properties'. `nil' means don't render styles at all.")
+
+(defvar doom-print-stream nil
+  "The default value for `standard-output' for Doom's print API.
+
+If non-nil, this is used instead of `standard-output' because changes to that
+variable don't survive translation units.")
 
 (defvar doom-print-level 'notice
   "The current, default logging level.")
@@ -142,11 +149,11 @@ Accepts `ansi' and `text-properties'. `nil' means don't render styles at all.")
             (format nil)
             (level doom-print-level)
             (newline t)
-            (stream standard-output))
+            (stream (or doom-print-stream standard-output)))
   "Print OUTPUT to stdout.
 
 Unlike `message', this:
-- Respects the value of `standard-output'.
+- Respects the value of `standard-output' (if `doom-print-stream' is nil).
 - Indents according to `doom-print-indent' (if FORMAT is non-nil).
 - Prints to stdout instead of stderr in batch mode.
 - Recognizes more terminal escape codes (only in batch mode).
@@ -159,7 +166,8 @@ Returns OUTPUT."
                  (if (listp level)
                      (memq doom-print-minimum-level level)
                    (>= (get level 'print-level)
-                       (get doom-print-minimum-level 'print-level)))))
+                       (or (get doom-print-minimum-level 'print-level)
+                           9999)))))
     (when format
       (setq output (doom-print--format "%s" output)))
     (princ output stream)
@@ -178,7 +186,7 @@ Returns OUTPUT."
   (cl-destructuring-bind (&key if indent level verbose title
                                ;; TODO: Implement these
                                _benchmark)
-      (cl-loop for (key val) on body by #'cddr
+      (cl-loop for (key _val) on body by #'cddr
                while (keywordp key)
                collect (pop body)
                collect (pop body))
@@ -235,7 +243,7 @@ based on the print level of the message. For example:
     `(letf! ((,sym ,streamspec)
              (standard-output (doom-print--redirect-standard-output ,sym t))
              (#'message (doom-print--redirect-message ,sym (if noninteractive 'debug 'notice)))
-             (doom-print--output-depth (1+ doom-print--output-depth)))
+             (doom-print-stream standard-output))
        ,@body)))
 
 
@@ -253,14 +261,14 @@ based on the print level of the message. For example:
              collect (cons t spec)
              else
              collect (cons (or (eq level t)
-                               (doom-partial
+                               (apply-partially
                                 car
                                 (get level 'print-level)
                                 (get (car spec) 'print-level)))
                            (cadr spec)))))
 
-(defun doom-print--redirect-standard-output (streamspec level)
-  (let ((old standard-output)
+(defun doom-print--redirect-standard-output (streamspec level &optional old-stream)
+  (let ((_old (or old-stream standard-output))
         (streams (doom-print--redirect-streams streamspec level)))
     (lambda (ch)
       (let ((str (char-to-string ch)))
@@ -272,7 +280,8 @@ based on the print level of the message. For example:
 
 (defun doom-print--redirect-message (streamspec level)
   (let ((old (symbol-function #'message))
-        (streams (doom-print--redirect-streams streamspec level)))
+        (streams (doom-print--redirect-streams streamspec level))
+        (doom-print--output-depth (1+ doom-print--output-depth)))
     (lambda (message &rest args)
       (when message
         (let ((output (apply #'doom-print--format message args)))
@@ -300,39 +309,47 @@ based on the print level of the message. For example:
 (defun doom-print--indent (text &optional prefix)
   "Indent TEXT by WIDTH spaces. If ARGS, format TEXT with them."
   (with-temp-buffer
-    (let ((width
-           (cond ((null prefix)
-                  doom-print-indent-increment)
-                 ((integerp prefix)
-                  prefix)
-                 ((length (ansi-color-filter-apply (format "%s" prefix)))))))
-      (insert (format "%s" (or text "")))
+    (let* ((re "^\\( *\\)\r")
+           (line-feed (if (stringp text) (string-match-p re text)))
+           (width (cond ((null prefix) doom-print-indent-increment)
+                        ((integerp prefix) prefix)
+                        ((length (ansi-color-filter-apply (format "%s" prefix)))))))
+      (insert
+       (if text
+           (replace-regexp-in-string re "\\1\033[K" (format "%s" text))
+         ""))
       (indent-rigidly (point-min) (point-max) width)
-      (when (stringp prefix)
-        (goto-char (point-min))
-        (delete-char width)
-        (insert prefix))
+      (save-excursion
+        (when line-feed
+          (goto-char (point-min))
+          (insert "\r")))
+      (save-excursion
+        (when (stringp prefix)
+          (goto-char (point-min))
+          (delete-char (+ width (if line-feed 1 0)))
+          (insert prefix)))
       (buffer-string))))
 
 ;;;###autoload
 (defun doom-print--fill (message &optional column indent)
   "Ensure MSG is split into lines no longer than `fill-column'."
   (with-temp-buffer
-    (let* ((fill-column (or column fill-column))
-           (col 0)
-           (indent (or indent 0))
+    (let* ((indent (or indent 0))
+           (fill-column (or column fill-column))
            (fill-prefix (make-string indent ?\s)))
       (save-excursion
-        (insert (format "%s" (or message ""))))
-      ;; HACK This monkey patches `fill-region' to not count ANSI codes as
-      ;;   legitimate characters, when calculating per-line `fill-column'.
+        (insert (replace-regexp-in-string
+                 "\n" "\n\n" (format "%s" (or message "")))))
+      ;; HACK: Use `fill-region', but don't count ANSI codes as legitimate
+      ;;   characters when calculating per-line `fill-column'.
       (letf! (defun current-fill-column ()
                (let ((target (funcall current-fill-column)))
                  (save-excursion
-                   (goto-char (line-beginning-position))
+                   (goto-char (pos-bol))
                    (let ((n 0)
                          (c 0))
-                     (while (and (not (eolp)) (<= n target))
+                     (while (and (not (eolp))
+                                 (<= n target))
                        (save-match-data
                          (if (looking-at ansi-color-control-seq-regexp)
                              (let ((len (length (match-string 0))))
@@ -342,7 +359,8 @@ based on the print level of the message. For example:
                            (forward-char 1))))
                      (+ target c (length fill-prefix))))))
         (fill-region (point-min) (point-max) nil t))
-      (buffer-string))))
+      (replace-regexp-in-string
+       "\n\n" "\n" (buffer-string)))))
 
 ;;;###autoload
 (defun doom-print--paragraph (&rest lines)
@@ -354,7 +372,7 @@ based on the print level of the message. For example:
   "Ensure SEQUENCE is joined with SEPARATOR.
 
 `nil' and empty strings in SEQUENCE are omitted."
-  (mapconcat (doom-partial #'format "%s")
+  (mapconcat (apply-partially #'format "%s")
              (seq-remove (fn! (or (null %)
                                   (and (stringp %)
                                        (string-empty-p %))))
@@ -392,7 +410,7 @@ based on the print level of the message. For example:
   ```"
   (if (not text) ""
     (let ((case-fold-search nil))
-      ;; TODO Syntax highlighting?
+      ;; TODO: Syntax highlighting?
       (replace-regexp-in-string
        " *```\n\\(.+?\\)\n *```" (doom-print--style 'blue "%s" "\\1")
        (replace-regexp-in-string
@@ -439,7 +457,7 @@ All emphasis markers need to be preceded by a backslash."
               (let ((end (point))
                     (iend (1- (point))))
                 (let ((text (buffer-substring ibeg iend)))
-                  (when-let (style (cdr (assq (string-to-char fence) styles)))
+                  (when-let* ((style (cdr (assq (string-to-char fence) styles))))
                     (goto-char beg)
                     (delete-region beg end)
                     (insert (doom-print--style style "%s" text)))))

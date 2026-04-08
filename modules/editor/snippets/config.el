@@ -31,7 +31,7 @@
   (add-transient-hook! #'company-yasnippet (require 'yasnippet))
 
   :config
-  (add-to-list 'doom-debug-variables '(yas-verbosity . 3))
+  (set-debug-var! 'yas-verbosity 3)
 
   ;; Allow private snippets in DOOMDIR/snippets
   (add-to-list 'yas-snippet-dirs '+snippets-dir)
@@ -40,12 +40,12 @@
   (add-to-list 'load-path +snippets-dir)
   (require 'doom-snippets nil t)
 
-  ;; HACK In case `+snippets-dir' and `doom-snippets-dir' are the same, or
-  ;;      duplicates exist in `yas-snippet-dirs'.
+  ;; HACK: In case `+snippets-dir' and `doom-snippets-dir' are the same, or
+  ;;   duplicates exist in `yas-snippet-dirs'.
   (advice-add #'yas-snippet-dirs :filter-return #'delete-dups)
 
   ;; Remove GUI dropdown prompt (prefer ivy/helm)
-  (delq! 'yas-dropdown-prompt yas-prompt-functions)
+  (cl-callf2 delq 'yas-dropdown-prompt yas-prompt-functions)
   ;; Prioritize private snippets in `+snippets-dir' over built-in ones if there
   ;; are multiple choices.
   (add-to-list 'yas-prompt-functions #'+snippets-prompt-private)
@@ -85,14 +85,14 @@
         (:map snippet-mode-map
          "C-c C-k" #'+snippet--abort))
 
-  ;; REVIEW Fix #2639: For some reason `yas--all-templates' returns duplicates
-  ;;        of some templates. Until I figure out the real cause this fixes it.
+  ;; REVIEW: Fix #2639: For some reason `yas--all-templates' returns duplicates
+  ;;   of some templates. Until I figure out the real cause this fixes it.
   (defadvice! +snippets--remove-duplicates-a (templates)
     :filter-return #'yas--all-templates
     (cl-delete-duplicates templates :test #'equal))
 
-  ;; HACK Smartparens will interfere with snippets expanded by `hippie-expand`,
-  ;;      so temporarily disable smartparens during snippet expansion.
+  ;; HACK: Smartparens will interfere with snippets expanded by `hippie-expand`,
+  ;;   so temporarily disable smartparens during snippet expansion.
   (after! hippie-exp
     (defvar +snippets--smartparens-enabled-p t)
     (defvar +snippets--expanding-p nil)

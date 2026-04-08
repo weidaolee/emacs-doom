@@ -1,9 +1,6 @@
 ;;; config/default/autoload/text.el -*- lexical-binding: t; -*-
 
 ;;;###autoload
-(defalias '+default/newline #'electric-indent-just-newline)
-
-;;;###autoload
 (defun +default/newline-above ()
   "Insert an indented new line before the current one."
   (interactive)
@@ -27,7 +24,7 @@
   "Interactively select what text to insert from the kill ring."
   (interactive)
   (call-interactively
-   (cond ((fboundp 'consult-yank-pop)    #'consult-yank-pop) ;HACK see @ymarco's comment on #5013 and TODO.org in the selecturm module.
+   (cond ((fboundp 'consult-yank-pop)    #'consult-yank-pop) ; HACK: see @ymarco's comment on #5013
          ((fboundp 'counsel-yank-pop)    #'counsel-yank-pop)
          ((fboundp 'helm-show-kill-ring) #'helm-show-kill-ring)
          ((error "No kill-ring search backend available. Enable ivy, helm or vertico!")))))
@@ -42,8 +39,8 @@
 (defun +default/yank-buffer-path (&optional root)
   "Copy the current buffer's path to the kill ring."
   (interactive)
-  (if-let (filename (or (buffer-file-name (buffer-base-buffer))
-                        (bound-and-true-p list-buffers-directory)))
+  (if-let* ((filename (or (buffer-file-name (buffer-base-buffer))
+                          (bound-and-true-p list-buffers-directory))))
       (let ((path (abbreviate-file-name
                    (if root
                        (file-relative-name filename root)
@@ -145,7 +142,7 @@ possible, or just one char if that's not possible."
              (insert-char ?\s (- ocol (current-column)) nil))))
         ;;
         ((= n 1)
-         (cond ((or (not (modulep! +smartparens))
+         (cond ((or (modulep! -smartparens)
                     (not (bound-and-true-p smartparens-mode))
                     (and (memq (char-before) (list ?\  ?\t))
                          (save-excursion

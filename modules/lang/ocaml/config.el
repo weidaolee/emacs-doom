@@ -1,5 +1,9 @@
 ;;; lang/ocaml/config.el -*- lexical-binding: t; -*-
 
+(after! projectile
+  (add-to-list 'projectile-project-root-files "dune-project"))
+
+
 ;;
 ;;; Packages
 
@@ -10,6 +14,13 @@
 
 
 (after! tuareg
+  (set-formatter! 'ocamlformat
+    '("ocamlformat" "-" "--name" filepath "--enable-outside-detected-project"
+      (if (locate-dominating-file default-directory ".ocamlformat")
+          (pcase (apheleia-formatters-extension-p "eliom" "eliomi")
+            ("eliom"  '("--impl"))
+            ("eliomi" '("--intf")))
+        '("--profile=ocamlformat"))))
   ;; tuareg-mode has the prettify symbols itself
   (set-ligatures! 'tuareg-mode :alist
     (append tuareg-prettify-symbols-basic-alist
@@ -17,12 +28,8 @@
   ;; harmless if `prettify-symbols-mode' isn't active
   (setq tuareg-prettify-symbols-full t)
 
-  ;; Use opam to set environment
-  (setq tuareg-opam-insinuate t)
-  (tuareg-opam-update-env (tuareg-opam-current-compiler))
-
   (setq-hook! 'tuareg-mode-hook
-    comment-line-break-function #'+ocaml/comment-indent-new-line)
+    comment-continue nil)
 
   (map! :localleader
         :map tuareg-mode-map
@@ -64,7 +71,7 @@
         "t" #'merlin-type-enclosing)
 
   (use-package! flycheck-ocaml
-    :when (modulep! :checkers syntax)
+    :when (modulep! :checkers syntax -flymake)
     :hook (merlin-mode . +ocaml-init-flycheck-h)
     :config
     (defun +ocaml-init-flycheck-h ()
@@ -90,36 +97,42 @@
 
 
 (use-package! ocp-indent
-  ;; must be careful to always defer this, it has autoloads that adds hooks
-  ;; which we do not want if the executable can't be found
-  :hook (tuareg-mode-local-vars . +ocaml-init-ocp-indent-h)
+  :hook (tuareg-mode-local-vars . ocp-setup-indent)
+  :hook (caml-mode-local-vars . ocp-indent-caml-mode-setup)
+  :init
+  (defadvice! +ocaml--init-ocp-indent-maybe-h (fn &rest args)
+    "Run `ocp-setup-indent' only if the ocp-indent binary is found."
+    :around #'ocp-setup-indent
+    (when (executable-find ocp-indent-path)
+      (apply fn args)))
   :config
-  (defun +ocaml-init-ocp-indent-h ()
-    "Run `ocp-setup-indent', so long as the ocp-indent binary exists."
-    (when (executable-find "ocp-indent")
-      (ocp-setup-indent))))
+  ;; HACK: The package adds these hooks, but they're redundant (even
+  ;;   counter-productive) with the hooks I add above.
+  (remove-hook 'tuareg-mode-hook #'ocp-setup-indent)
+  (remove-hook 'caml-mode-hook #'ocp-indent-caml-mode-setup))
 
 
-(use-package! ocamlformat
-  :when (modulep! :editor format)
-  :commands ocamlformat
-  :hook (tuareg-mode-local-vars . +ocaml-init-ocamlformat-h)
+(use-package! opam-switch-mode
+  :hook (tuareg-mode-local-vars . opam-switch-mode)
+  :preface
+  (map! :after tuareg
+        :localleader
+        :map tuareg-mode-map
+        "w" #'opam-switch-set-switch)
+  :init
+  (defadvice! +ocaml--init-opam-switch-mode-maybe-h (fn &rest args)
+    "Activate `opam-switch-mode' if the opam executable exists."
+    :around #'opam-switch-mode
+    (when (executable-find opam-switch-program-name)
+      (apply fn args)))
   :config
-  (set-formatter! 'ocamlformat #'ocamlformat
-    :modes '(caml-mode tuareg-mode))
-  ;; TODO Fix region-based formatting support
-  (defun +ocaml-init-ocamlformat-h ()
-    (setq +format-with 'ocp-indent)
-    (when (and (executable-find "ocamlformat")
-               (locate-dominating-file default-directory ".ocamlformat"))
-      (when buffer-file-name
-        (let ((ext (file-name-extension buffer-file-name t)))
-          (cond ((equal ext ".eliom")
-                 (setq-local ocamlformat-file-kind 'implementation))
-                ((equal ext ".eliomi")
-                 (setq-local ocamlformat-file-kind 'interface)))))
-      (setq +format-with 'ocamlformat))))
+  ;; Use opam to set environment
+  (setq tuareg-opam-insinuate t)
+  (opam-switch-set-switch (tuareg-opam-current-compiler)))
 
-;; Tree sitter
-(eval-when! (modulep! +tree-sitter)
-  (add-hook! 'tuareg-mode-local-vars-hook #'tree-sitter!))
+
+(use-package! dune
+  :defer t
+  :config
+  (set-formatter! 'format-dune-file '("dune" "format-dune-file")
+    :modes '(dune-mode)))

@@ -10,7 +10,7 @@ Provide a helping hand when working with LaTeX documents.
 - Fontification of many popular commands
 - Pretty indentation of wrapped lines using the [[doom-package:adaptive-wrap]] package
 - Spell checking with [[doom-package:flycheck]]
-- Change PDF viewer to Okular or [[doom-package:latex-preview-pane]]
+- Change PDF viewer to Okular or AUCTeX-selected viewer
 - Bibtex editor
 - Autocompletion using [[doom-package:company-mode]]
 - Compile your =.tex= code only once using LatexMk
@@ -27,8 +27,6 @@ Provide a helping hand when working with LaTeX documents.
 - +fold ::
   Use TeX-fold (from [[doom-package:auctex]]) to fold LaTeX macros to unicode, and make folding
   hook-based and less manual.
-- +latexmk ::
-  Use LatexMk instead of LaTeX to compile documents.
 - +lsp ::
   Enable LSP support in latex buffers. Requires [[doom-module::tools lsp]] and a langserver
   (supports digestif and TexLab).
@@ -36,10 +34,9 @@ Provide a helping hand when working with LaTeX documents.
 ** Packages
 - [[doom-package:adaptive-wrap]]
 - [[doom-package:auctex]]
-- [[doom-package:auctex-latexmk]] if [[doom-module:+latexmk]]
 - [[doom-package:cdlatex]] if [[doom-module:+cdlatex]]
 - [[doom-package:evil-tex]] if [[doom-module::editor evil +everywhere]]
-- [[doom-package:latex-preview-pane]]
+- [[doom-package:auctex-cont-latexmk]]
 - if [[doom-module::completion company]]
   - [[doom-package:company-auctex]]
   - [[doom-package:company-math]]
@@ -47,7 +44,7 @@ Provide a helping hand when working with LaTeX documents.
 
 ** TODO Hacks
 #+begin_quote
- 🔨 This module's hacks haven't been documented yet. [[doom-contrib-module:][Document them?]]
+ 󱌣 This module's hacks haven't been documented yet. [[doom-contrib-module:][Document them?]]
 #+end_quote
 
 ** TODO Changelog
@@ -61,7 +58,7 @@ This module requires ghostscript and a latex compiler. These are provided by the
 =texlive= bundle, available through many OS package managers.
 
 #+begin_quote
- 🚧 Ghostscript <= 9.27 is [[/auctex/manual/preview-latex/No-images-are-displayed-with-gs-9_002e27-and-earlier.html][reportedly buggy]] and doesn't work with auctex's math
+  Ghostscript <= 9.27 is [[/auctex/manual/preview-latex/No-images-are-displayed-with-gs-9_002e27-and-earlier.html][reportedly buggy]] and doesn't work with auctex's math
     previews. (You can check you ghostscript version with ~$ gs --version~.)
     Most package managers already have newer versions, but if not you might have
     to build gs from source.
@@ -74,7 +71,7 @@ apt-get install texlive
 
 ** Arch Linux
 #+begin_src sh
-pacman -S texlive-core
+pacman -S texlive-basic texlive-latexrecommended texlive-plaingeneric
 #+end_src
 
 ** TODO macOS
@@ -85,7 +82,7 @@ brew install --cask mactex  # WARNING: large 4gb download!
 #+end_src
 
 #+begin_quote
- 🔨 This has not been verified.
+ 󱌣 This has not been verified.
 #+end_quote
 
 ** NixOS
@@ -93,9 +90,13 @@ brew install --cask mactex  # WARNING: large 4gb download!
 environment.systemPackages = [ pkgs.texlive.combined.scheme-medium ];
 #+end_src
 
+** Formatter
+
+Formatting is handled using the [[doom-module::editor format]] module via [[https://github.com/cmhughes/latexindent.pl][latexindent]].
+
 * TODO Usage
 #+begin_quote
- 🔨 This module has no usage documentation yet. [[doom-contrib-module:][Write some?]]
+ 󱌣 This module has no usage documentation yet. [[doom-contrib-module:][Write some?]]
 #+end_quote
 
 * Configuration
@@ -125,10 +126,6 @@ tool, for instance:
 (setq +latex-viewers '(zathura))
 #+end_src
 
-If none of these tools are found, ~latex-preview-pane~ (uses ~DocView~ in Emacs)
-is used as a fallback. You can use this exclusively by setting ~+latex-viewers~
-to ~nil~.
-
 ** Using cdlatex's snippets despite having yasnippet
 [[doom-package:cdlatex]] has a snippet insertion capability which is disabled in favor of
 [[doom-package:yasnippet]] when using [[doom-module::editor snippets]]. If you still wanna use it, simply rebind
@@ -149,7 +146,6 @@ in latex buffers.
 * Frequently asked questions
 /This module has no FAQs yet./ [[doom-suggest-faq:][Ask one?]]
 
-* TODO Appendix
-#+begin_quote
- 🔨 This module has no appendix yet. [[doom-contrib-module:][Write one?]]
-#+end_quote
+* Appendix
+** Commands
+- ~+latex/live-preview~: Pop up the viewer of choice and display the document compiled live with each save.

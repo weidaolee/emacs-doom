@@ -43,21 +43,8 @@ grows larger."
 buffer that shouldn't be in a popup. We prevent that by remapping `quit-window'
 to this commmand."
   (interactive)
-  (let ((orig-buffer (current-buffer)))
-    (quit-window)
-    (when (and (eq orig-buffer (current-buffer))
-               (+popup-buffer-p))
-      (+popup/close nil 'force))))
-(global-set-key [remap quit-window] #'+popup/quit-window)
-
-(defadvice! +popup-override-display-buffer-alist-a (fn &rest args)
-  "When `pop-to-buffer' is called with non-nil ACTION, that ACTION should
-override `display-buffer-alist'."
-  :around #'switch-to-buffer-other-tab
-  :around #'switch-to-buffer-other-window
-  :around #'switch-to-buffer-other-frame
-  (let ((display-buffer-alist nil))
-    (apply fn args)))
+  (+popup/close nil 'force))
+(define-key +popup-buffer-mode-map [remap quit-window] #'+popup/quit-window)
 
 
 ;;
@@ -102,26 +89,6 @@ were followed."
 
 ;;;###package evil
 (progn
-  ;; Make evil-mode cooperate with popups
-  (defadvice! +popup--evil-command-window-a (hist cmd-key execute-fn)
-    "Monkey patch the evil command window to use `pop-to-buffer' instead of
-`switch-to-buffer', allowing the popup manager to handle it."
-    :override #'evil-command-window
-    (when (eq major-mode 'evil-command-window-mode)
-      (user-error "Cannot recursively open command line window"))
-    (dolist (win (window-list))
-      (when (equal (buffer-name (window-buffer win))
-                   "*Command Line*")
-        (kill-buffer (window-buffer win))
-        (delete-window win)))
-    (setq evil-command-window-current-buffer (current-buffer))
-    (ignore-errors (kill-buffer "*Command Line*"))
-    (with-current-buffer (pop-to-buffer "*Command Line*")
-      (setq-local evil-command-window-execute-fn execute-fn)
-      (setq-local evil-command-window-cmd-key cmd-key)
-      (evil-command-window-mode)
-      (evil-command-window-insert-commands hist)))
-
   (defadvice! +popup--evil-command-window-execute-a ()
     "Execute the command under the cursor in the appropriate buffer, rather than
 the command buffer."
@@ -148,7 +115,6 @@ the command buffer."
   (advice-add #'evil-window-move-far-right   :around #'+popup-save-a))
 
 
-;;;###package help-mode
 (after! help-mode
   (defun +popup--switch-from-popup (location)
     (let (origin enable-local-variables)
@@ -199,8 +165,8 @@ the command buffer."
         origin)
     (save-popups!
      (find-file path)
-     (when-let (pos (get-text-property button 'position
-                                       (marker-buffer button)))
+     (when-let* ((pos (get-text-property button 'position
+                                         (marker-buffer button))))
        (goto-char pos))
      (setq origin (selected-window))
      (recenter))
@@ -216,7 +182,7 @@ the command buffer."
   (defadvice! +popup--helm-hide-org-links-popup-a (fn &rest args)
     :around #'org-insert-link
     (letf! ((defun org-completing-read (&rest args)
-              (when-let (win (get-buffer-window "*Org Links*"))
+              (when-let* ((win (get-buffer-window "*Org Links*")))
                 ;; While helm is opened as a popup, it will mistaken the *Org
                 ;; Links* popup for the "originated window", and will target it
                 ;; for actions invoked by the user. However, since *Org Links*
@@ -242,7 +208,7 @@ the command buffer."
 ;;;###package Info
 (defadvice! +popup--switch-to-info-window-a (&rest _)
   :after #'info-lookup-symbol
-  (when-let (win (get-buffer-window "*info*"))
+  (when-let* ((win (get-buffer-window "*info*")))
     (when (+popup-window-p win)
       (select-window win))))
 
@@ -254,7 +220,6 @@ the command buffer."
     (apply fn args)))
 
 
-;;;###package org
 (after! org
   (defadvice! +popup--suppress-delete-other-windows-a (fn &rest args)
     "Org has a scorched-earth window management policy I'm not fond of. i.e. it
@@ -301,7 +266,7 @@ Ugh, such an ugly hack."
                 (defun split-window-vertically (&optional _size)
                   (funcall split-window-vertically (- 0 window-min-height 1)))
                 (defun org-fit-window-to-buffer (&optional window max-height min-height shrink-only)
-                  (when-let (buf (window-buffer window))
+                  (when-let* ((buf (window-buffer window)))
                     (with-current-buffer buf
                       (+popup-buffer-mode)))
                   (when (> (window-buffer-height window)
@@ -317,20 +282,11 @@ Ugh, such an ugly hack."
            (popup-p (+popup-window-p window)))
       (prog1 (apply fn args)
         (when (and popup-p (window-live-p window))
-          (delete-window window)))))
-
-  ;; Ensure todo, agenda, and other minor popups are delegated to the popup system.
-  (defadvice! +popup--org-pop-to-buffer-a (fn buf &optional norecord)
-    "Use `pop-to-buffer' instead of `switch-to-buffer' to open buffer.'"
-    :around #'org-switch-to-buffer-other-window
-    (if +popup-mode
-        (pop-to-buffer buf nil norecord)
-      (funcall fn buf norecord))))
-
+          (delete-window window))))))
 
 ;;;###package org-journal
 (defadvice! +popup--use-popup-window-a (fn &rest args)
-  :around #'org-journal-search-by-string
+  :around #'org-journal--search-by-string
   (letf! ((#'switch-to-buffer #'pop-to-buffer))
     (apply fn args)))
 
@@ -344,7 +300,6 @@ Ugh, such an ugly hack."
       (+popup--init window nil))))
 
 
-;;;###package pdf-tools
 (after! pdf-tools
   (setq tablist-context-window-display-action
         '((+popup-display-buffer-stacked-side-window-fn)
@@ -375,6 +330,12 @@ Ugh, such an ugly hack."
     (letf! ((#'switch-to-buffer-other-window #'pop-to-buffer))
       (apply fn args))))
 
+;;;###package wdired
+(progn
+  ;; close the popup after you're done with a wdired buffer
+  (advice-add #'wdired-abort-changes :after #'+popup-close-a)
+  (advice-add #'wdired-finish-edit :after #'+popup-close-a))
+
 ;;;###package wgrep
 (progn
   ;; close the popup after you're done with a wgrep buffer
@@ -382,7 +343,6 @@ Ugh, such an ugly hack."
   (advice-add #'wgrep-finish-edit :after #'+popup-close-a))
 
 
-;;;###package which-key
 (after! which-key
   (when (eq which-key-popup-type 'side-window)
     (setq which-key-popup-type 'custom
@@ -394,7 +354,7 @@ Ugh, such an ugly hack."
             (letf! (defun display-buffer-in-side-window (buffer alist)
                      (+popup-display-buffer-stacked-side-window-fn
                       buffer (append '((vslot . -9999) (select . t)) alist)))
-              ;; HACK Fix #2219 where the which-key popup would get cut off.
+              ;; HACK: Fix #2219 where the which-key popup would get cut off.
               (setcar act-popup-dim (1+ (car act-popup-dim)))
               (which-key--show-buffer-side-window act-popup-dim))))))
 

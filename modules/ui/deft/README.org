@@ -31,12 +31,12 @@ quickly jot down thoughts and easily retrieve them later.
 
 * TODO Usage
 #+begin_quote
-🔨 This module has no usage documentation yet. [[doom-contrib-module:][Write some?]]
+ 󱌣 This module has no usage documentation yet. [[doom-contrib-module:][Write some?]]
 #+end_quote
 
 * TODO Configuration
 #+begin_quote
- 🔨 /This module's configuration documentation is incomplete./ [[doom-contrib-module:][Complete it?]]
+ 󱌣 /This module's configuration documentation is incomplete./ [[doom-contrib-module:][Complete it?]]
 #+end_quote
 
 To use deft, you first need to specify the directory in which your notes are
@@ -50,7 +50,7 @@ The default note format is org-mode. You can change this by setting the value of
 the variable ~deft-default-extension~. Replacing the value with ~"md"~, for
 example, will change the default note format to markdown:
 #+begin_src emacs-lisp
-(after! deft
+(with-eval-after-load 'deft
   (setq deft-default-extension "md"))
 #+end_src
 
@@ -64,12 +64,12 @@ https://github.com/jrblevin/deft#other-customizations
 * Troubleshooting
 [[doom-report:][Report an issue?]]
 
-- It is [[https://github.com/hlissner/doom-emacs/pull/2845/commits/dce80a3c8032f5390f4e763e18a108d5f3f08772][not recommended]] to re-enable deft's buffer auto-save.
+- It is [[https://github.com/doomemacs/doomemacs/pull/2845/commits/dce80a3c8032f5390f4e763e18a108d5f3f08772][not recommended]] to re-enable deft's buffer auto-save.
 
 * Frequently asked questions
 /This module has no FAQs yet./ [[doom-suggest-faq:][Ask one?]]
 
 * TODO Appendix
 #+begin_quote
- 🔨 This module has no appendix yet. [[doom-contrib-module:][Write one?]]
+ 󱌣 This module has no appendix yet. [[doom-contrib-module:][Write one?]]
 #+end_quote

@@ -1,11 +1,12 @@
 ;;; lang/haskell/config.el -*- lexical-binding: t; -*-
 
+;; DEPRECATED: Remove when projectile is replaced with project.el
 (after! projectile
   (add-to-list 'projectile-project-root-files "stack.yaml"))
 
 
 ;;
-;;; Common packages
+;;; Packages
 
 (after! haskell-mode
   (setq haskell-process-suggest-remove-import-lines t  ; warnings for redundant imports etc
@@ -22,13 +23,15 @@
     #'+haskell/open-repl :persist t)
   ;; Don't kill REPL popup on ESC/C-g
   (set-popup-rule! "^\\*haskell\\*" :quit nil)
+  (set-indent-vars! 'haskell-mode 'haskell-indent-offset)
 
   (add-hook! 'haskell-mode-hook
              #'haskell-collapse-mode ; support folding haskell code blocks
              #'interactive-haskell-mode)
 
-  (when (modulep! +tree-sitter)
-    (add-hook 'haskell-mode-local-vars-hook #'tree-sitter! 'append))
+  (when (modulep! +lsp)
+    (add-hook 'haskell-mode-local-vars-hook #'lsp! 'append)
+    (add-hook 'haskell-literate-mode-local-vars-hook #'lsp! 'append))
 
   (add-to-list 'completion-ignored-extensions ".hi")
 
@@ -46,13 +49,22 @@
         "H" #'haskell-hide-toggle-all))
 
 
+(use-package! haskell-ts-mode
+  :when (modulep! +tree-sitter)
+  :defer t
+  :init
+  (set-tree-sitter! 'haskell-mode 'haskell-ts-mode
+    '((haskell :url "https://github.com/tree-sitter/tree-sitter-haskell")))
+  :config
+  (set-repl-handler! 'haskell-ts-mode #'run-haskell :persist t)
+  (set-eglot-client! 'haskell-ts-mode '("haskell-language-server-wrapper" "--lsp"))
+  (when (modulep! +lsp)
+    (add-hook 'haskell-ts-mode-local-vars-hook #'lsp! 'append)))
+
+
 (use-package! lsp-haskell
   :when (modulep! +lsp)
   :defer t
-  :init
-  (add-hook 'haskell-mode-local-vars-hook #'lsp! 'append)
-  (add-hook 'haskell-literate-mode-local-vars-hook #'lsp! 'append)
-  (after! lsp-mode (require 'lsp-haskell))
   :config
   ;; Does some strange indentation if it pastes in the snippet
   (setq-hook! 'haskell-mode-hook yas-indent-line 'fixed))

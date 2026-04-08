@@ -1,6 +1,9 @@
 ;;; lang/lean/config.el -*- lexical-binding: t; -*-
 
-(after! lean-mode
+(use-package! lean-mode  ; lean 3 support
+  :when (modulep! +v3)
+  :defer t
+  :config
   (set-lookup-handlers! 'lean-mode
     :definition #'lean-find-definition)
   (sp-with-modes 'lean-mode
@@ -28,9 +31,29 @@
         "e" #'lean-execute))
 
 
-(use-package! company-lean
-  :when (modulep! :completion company)
-  :after lean-mode
+(use-package! nael  ; lean 4 support
+  :defer t
   :init
-  (advice-add #'company-lean-hook :override #'ignore)
-  (set-company-backend! 'lean-mode 'company-lean))
+  (add-hook 'nael-mode-hook #'abbrev-mode)
+  (after! org-src
+    (add-to-list 'org-src-lang-modes '("lean" . nael)))
+  (after! markdown-mode
+    (add-to-list 'markdown-code-lang-modes '("lean" . nael-mode)))
+  :config
+  (sp-with-modes 'nael-mode
+    (sp-local-pair "/-" "-/")
+    (sp-local-pair "`" "`")
+    (sp-local-pair "{" "}")
+    (sp-local-pair "«" "»")
+    (sp-local-pair "⟨" "⟩")
+    (sp-local-pair "⟪" "⟫"))
+  (when (modulep! +lsp)
+    (if (modulep! :tools lsp +eglot)
+        (setq nael-prepare-lsp nil)
+      (setq nael-prepare-eglot nil))
+    (add-hook 'nael-mode-local-vars-hook #'lsp! 'append))
+  (map! :map nael-mode-map
+        :localleader
+        "a" #'nael-abbrev-help
+        "b" #'project-build      ; REVIEW: redundant with '<leader> p'?
+        "e" #'eldoc-doc-buffer)) ; REVIEW: redundant with +lookup/documentation?

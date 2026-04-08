@@ -26,13 +26,13 @@ This holy module brings the Vim editing model to Emacs.
 - [[doom-package:evil-exchange]]
 - [[doom-package:evil-indent-plus]]
 - [[doom-package:evil-lion]]
-- [[doom-package:evil-nerd-commentary]]
+- [[doom-package:evil-nerd-commenter]]
 - [[doom-package:evil-numbers]]
 - [[doom-package:evil-quick-diff]]
 - [[doom-package:evil-snipe]]
 - [[doom-package:evil-surround]]
 - [[doom-package:evil-textobj-anyblock]]
-- [[doom-package:evil-vimish-fold]]
+- [[doom-package:evil-traces]]
 - [[doom-package:evil-visualstar]]
 - [[doom-package:exato]]
 
@@ -58,7 +58,7 @@ This holy module brings the Vim editing model to Emacs.
 
 * TODO Usage
 #+begin_quote
- 🔨 /This module's usage documentation is incomplete./ [[doom-contrib-module:][Complete it?]]
+ 󱌣 /This module's usage documentation is incomplete./ [[doom-contrib-module:][Complete it?]]
 #+end_quote
 
 ** Ported vim plugins
@@ -71,7 +71,7 @@ The following vim plugins have been ported to evil:
 | vim-lion              | evil-lion                      | omap [[kbd:][gl]] / [[kbd:][gL]]                   |
 | vim-seek or vim-sneak | evil-snipe                     | mmap [[kbd:][s]] / [[kbd:][S]], omap [[kbd:][z]] / [[kbd:][Z]] & [[kbd:][x]] / [[kbd:][X]] |
 | vim-surround          | evil-embrace and evil-surround | vmap [[kbd:][S]], omap [[kbd:][ys]]                |
-| vim-unimpaired        | (provided by Doom)             | [[https://github.com/hlissner/doom-emacs/blob/develop/modules/editor/evil/config.el#L413-L460][see the list]]                   |
+| vim-unimpaired        | (provided by Doom)             | [[https://github.com/doomemacs/doomemacs/blob/master/modules/editor/evil/config.el#L413-L460][see the list]]                   |
 
 This module has also ported vim-unimpaired keybinds to Emacs.
 
@@ -138,7 +138,7 @@ And these are text objects added by this module:
 
 * TODO Configuration
 #+begin_quote
- 🔨 This module has no configuration documentation yet. [[doom-contrib-module:][Write some?]]
+ 󱌣 This module has no configuration documentation yet. [[doom-contrib-module:][Write some?]]
 #+end_quote
 
 * Troubleshooting
@@ -193,7 +193,7 @@ If you prefer the old behavior, it can be reversed with:
    are bound to [[kbd:][C-c]] and [[kbd:][C-c l]] by default.
 
 #+begin_quote
- 🚧 Ignore ~doom-leader-key~ and ~doom-localleader-key~, they don't apply to
+  Ignore ~doom-leader-key~ and ~doom-localleader-key~, they don't apply to
     non-evil sessions.
 #+end_quote
 
@@ -241,5 +241,5 @@ Like in vim, the clipboard can still be accessed by using the [[kbd:][+]] regist
 
 * TODO Appendix
 #+begin_quote
- 🔨 This module has no appendix yet. [[doom-contrib-module:][Write one?]]
+ 󱌣 This module has no appendix yet. [[doom-contrib-module:][Write one?]]
 #+end_quote

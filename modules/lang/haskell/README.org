@@ -21,6 +21,7 @@ This module adds Haskell support to Doom Emacs.
   
 ** Packages
 - [[doom-package:haskell-mode]]
+- [[doom-package:haskell-ts-mode]] if [[doom-module:+tree-sitter]]
 - [[doom-package:lsp-haskell]] if [[doom-module:+lsp]]
 
 ** Hacks
@@ -52,25 +53,30 @@ system package manager, cabal, or stack.
 formatters such as [[https://github.com/lspitzner/brittany][brittany]], [[https://github.com/ennocramer/floskell][floskell]], [[https://github.com/tweag/ormolu][ormolu]], [[https://github.com/fourmolu/fourmolu][fourmolu]], and [[https://github.com/haskell/stylish-haskell][stylish-haskell]],
 which can be installed through system package manager, cabal, or stack.
 
+** Formatter
+
+[[doom-module::editor format]] by default uses [[https://github.com/fourmolu/fourmolu#installation][fourmolu]] to format code when not
+relying on hls, follow the linked install instructions.
+
 * TODO Usage
 #+begin_quote
- 🔨 /This module's usage documentation is incomplete./ [[doom-contrib-module:][Complete it?]]
+ 󱌣 /This module's usage documentation is incomplete./ [[doom-contrib-module:][Complete it?]]
 #+end_quote
 
 This module integrates the haskell packages into Doom by providing things such
 as REPL support, project root recognition, etc. It also provide the following
 keybindings:
 
-| Keybinding      | Description                                   |
-|-----------------+-----------------------------------------------|
-| [[kbd:][<localleader> b]] | Build the current cabal project               |
+| Keybinding      | Description                                 |
+|-----------------+---------------------------------------------|
+| [[kbd:][<localleader> b]] | Build the current cabal project             |
 | [[kbd:][<localleader> c]] | Visit the =.cabal= file of the current buffer |
-| [[kbd:][<localleader> h]] | Toggle visibility of the form at point        |
-| [[kbd:][<localleader> H]] | hides all top level functions                 |
+| [[kbd:][<localleader> h]] | Toggle visibility of the form at point      |
+| [[kbd:][<localleader> H]] | hides all top level functions               |
 
 * TODO Configuration
 #+begin_quote
- 🔨 /This module's configuration documentation is incomplete./ [[doom-contrib-module:][Complete it?]]
+ 󱌣 /This module's configuration documentation is incomplete./ [[doom-contrib-module:][Complete it?]]
 #+end_quote
 
 After installing your preferred formatter, make sure to set
@@ -79,7 +85,7 @@ After installing your preferred formatter, make sure to set
 Make sure to configure the lsp to use your perfered formatter, e.g.:
 #+begin_src emacs-lisp
 ;; ~/.doom.d/config.el
-(after! lsp-haskell
+(with-eval-after-load 'lsp-haskell
   (setq lsp-haskell-formatting-provider "brittany"))
 #+end_src
 
@@ -91,5 +97,5 @@ Make sure to configure the lsp to use your perfered formatter, e.g.:
 
 * TODO Appendix
 #+begin_quote
-🔨 This module has no appendix yet. [[doom-contrib-module:][Write one?]]
+ 󱌣 This module has no appendix yet. [[doom-contrib-module:][Write one?]]
 #+end_quote

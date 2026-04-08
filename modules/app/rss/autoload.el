@@ -67,8 +67,10 @@
     (when link
       (kill-new link)
       (message "Copied %s to clipboard" link))))
+
+
 ;;
-;; Hooks
+;;; Hooks
 
 ;;;###autoload
 (defun +rss-elfeed-wrap-h ()
@@ -81,14 +83,18 @@
     (setq-local shr-width 85)
     (set-buffer-modified-p nil)))
 
+(defun +rss--cleanup-on-kill-h ()
+  "Run `elfeed-db-compact'. See `+rss-cleanup-h'."
+  ;; `delete-file-projectile-remove-from-cache' slows down `elfeed-db-compact'
+  ;; tremendously, so we disable the projectile cache:
+  (let (projectile-enable-caching)
+    (elfeed-db-compact)))
+
 ;;;###autoload
 (defun +rss-cleanup-h ()
   "Clean up after an elfeed session. Kills all elfeed and elfeed-org files."
   (interactive)
-  ;; `delete-file-projectile-remove-from-cache' slows down `elfeed-db-compact'
-  ;; tremendously, so we disable the projectile cache:
-  (let (projectile-enable-caching)
-    (elfeed-db-compact))
+  (add-hook 'kill-emacs-hook #'+rss--cleanup-on-kill-h)
   (let ((buf (previous-buffer)))
     (when (or (null buf) (not (doom-real-buffer-p buf)))
       (switch-to-buffer (doom-fallback-buffer))))
@@ -96,7 +102,7 @@
         (show-buffers (doom-buffers-in-mode 'elfeed-show-mode))
         kill-buffer-query-functions)
     (dolist (file (bound-and-true-p rmh-elfeed-org-files))
-      (when-let (buf (get-file-buffer (expand-file-name file org-directory)))
+      (when-let* ((buf (get-file-buffer (expand-file-name file org-directory))))
         (kill-buffer buf)))
     (dolist (b search-buffers)
       (with-current-buffer b
@@ -105,7 +111,7 @@
     (mapc #'kill-buffer show-buffers))
   (if (and (modulep! :ui workspaces)
            (+workspace-exists-p +rss-workspace-name))
-      (+workspace/delete +rss-workspace-name)
+      (+workspace/kill +rss-workspace-name)
     (when (window-configuration-p +rss--wconf)
       (set-window-configuration +rss--wconf))
     (setq +rss--wconf nil)
@@ -113,7 +119,7 @@
 
 
 ;;
-;; Functions
+;;; Functions
 
 ;;;###autoload
 (defun +rss-dead-feeds (&optional years)

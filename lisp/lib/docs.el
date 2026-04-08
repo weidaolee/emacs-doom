@@ -19,24 +19,24 @@
 (defvar doom-docs-header-specs
   '(("/docs/index\\.org$"
      (:label "FAQ"
-      :icon "question_answer"
+      :icon "nf-md-message_question_outline"
       :link "doom-faq:"
       :help-echo "Open the FAQ document"))
     (("/docs/[^/]+\\.org$" "/modules/README\\.org$")
      (:label "Back to index"
-      :icon "arrow_back"
-      :link ("doom-index" . "")
+      :icon "nf-md-arrow_left"
+      :link "doom-index"
       :help-echo "Navigate to the root index"))
     ("/modules/[^/]+/README\\.org$"
      (:label "Back to module index"
-      :icon "arrow_back"
+      :icon "nf-md-arrow_left"
       :link "doom-module-index:"))
     ("/modules/[^/]+/[^/]+/README\\.org$"
      (:label "Back to module index"
-      :icon "arrow_back"
+      :icon "nf-md-arrow_left"
       :link "doom-module-index:")
      (:label "History"
-      :icon "history"
+      :icon "nf-md-history"
       :icon-face font-lock-variable-name-face
       :link (lambda ()
               (cl-destructuring-bind (category . module) (doom-module-from-path (buffer-file-name))
@@ -44,7 +44,7 @@
       :help-echo "View the module history"
       :align right)
      (:label "Issues"
-      :icon "error_outline"
+      :icon "nf-md-flag"
       :icon-face error
       :link (lambda ()
               (cl-destructuring-bind (category . module) (doom-module-from-path (buffer-file-name))
@@ -52,12 +52,12 @@
       :align right))
      (t
       (:label "Suggest edits"
-       :icon "edit"
+       :icon "nf-md-account_edit"
        :icon-face warning
        :link "doom-suggest-edit"
        :align right)
       (:label "Help"
-       :icon "help_outline"
+       :icon "nf-md-timeline_help_outline"
        :icon-face font-lock-function-name-face
        :link (lambda ()
                (let ((title (cadar (org-collect-keywords '("TITLE")))))
@@ -101,9 +101,10 @@
 (defun doom-docs--make-header-link (spec)
   "Create a header link according to SPEC."
   (let ((icon (and (plist-get spec :icon)
-                   (funcall (or (plist-get spec :icon-function)
-                                #'all-the-icons-material)
-                            (plist-get spec :icon))))
+                   (with-demoted-errors "DOCS ERROR: %s"
+                     (funcall (or (plist-get spec :icon-function)
+                                  #'nerd-icons-mdicon)
+                              (plist-get spec :icon)))))
         (label (pcase (plist-get spec :label)
                  ((and (pred functionp) lab)
                   (funcall lab))
@@ -156,9 +157,9 @@
       (set-buffer-modified-p nil)
       (org-link-open (org-element-context)))))
 
-;; DEPRECATED Will be renamed once docs "framework" is generalized
+;; DEPRECATED: Will be renamed once docs "framework" is generalized
 (defvar doom-docs-link-alist
-  '(("doom-tag"                . "https://github.com/hlissner/doom-emacs/releases/tag/%s")
+  '(("doom-tag"                . "https://github.com/doomemacs/doomemacs/releases/tag/%s")
     ("doom-contrib-core"       . "id:9ac0c15c-29e7-43f8-8926-5f0edb1098f0")
     ("doom-contrib-docs"       . "id:31f5a61d-d505-4ee8-9adb-97678250f4e2")
     ("doom-contrib-maintainer" . "id:e71e9595-a297-4c49-bd11-f238329372db")
@@ -176,7 +177,7 @@
     ("doom-suggest-faq"        . "id:aa28b732-0512-49ed-a47b-f20586c0f051")
     ("github"                  . "https://github.com/%s")
 
-    ;; TODO Implement later, once docs are generalized
+    ;; TODO: Implement later, once docs are generalized
     ;; ("github-release"          . (lambda (link)
     ;;                                (format "%s/releases/tag/%s"
     ;;                                        doom-docs-this-repo
@@ -235,15 +236,13 @@
      (when (looking-at-p org-drawer-regexp)
        (setq pt (org-element-property :end (org-element-at-point))))
      (while (re-search-forward org-drawer-regexp nil t)
-       (when-let ((el (org-element-at-point))
-                  (beg (max (point-min) (1- (org-element-property :begin el))))
-                  (end (org-element-property :end el))
-                  ((memq (org-element-type el) '(drawer property-drawer))))
-         (when (org-current-level)
+       (when-let* ((el (org-element-at-point))
+                   (beg (max (point-min) (1- (org-element-property :begin el))))
+                   (end (org-element-property :end el))
+                   ((memq (org-element-type el) '(drawer property-drawer))))
+         (when (org-element-property-inherited :level el)
            (cl-decf end))
-         (org-fold-core-region beg end doom-docs-mode 'doom-doc-hidden)
-         (when doom-docs-mode
-           (org-fold-core-region beg end nil 'org-hide-drawer)))))
+         (org-fold-core-region beg end doom-docs-mode 'doom-doc-hidden))))
     ;; FIX: If the cursor remains within a newly folded region, that folk will
     ;;   come undone, so we move it.
     (if pt (goto-char pt))))
@@ -253,7 +252,7 @@
   (org-with-wide-buffer
    (goto-char (point-min))
    (while (re-search-forward org-heading-regexp nil t)
-     (when-let (tags (org-get-tags nil t))
+     (when-let* ((tags (org-get-tags nil t)))
        (when (or (member "noorg" tags)
                  (member "unfold" tags))
          ;; prevent `org-ellipsis' around hidden regions
@@ -373,7 +372,7 @@ depending.")
 (defvar doom-docs--cookies nil)
 ;;;###autoload
 (define-minor-mode doom-docs-mode
-  "Hides metadata, tags, & drawers and activates all org-mode pretiffications.
+  "Hides metadata, tags, & drawers and activates all org-mode prettifications.
 This primes `org-mode' for reading."
   :lighter " Doom Docs"
   :after-hook (org-restart-font-lock)
@@ -387,7 +386,7 @@ This primes `org-mode' for reading."
           (if doom-docs-mode
               (set (make-local-variable sym) t)
             (kill-local-variable sym)))
-        `(org-pretty-entities
+        '(org-pretty-entities
           org-hide-emphasis-markers
           org-hide-macro-markers))
   (when doom-docs-mode
@@ -407,7 +406,7 @@ This primes `org-mode' for reading."
                 (unless (< state 0)
                   (setf (alist-get mode doom-docs--initial-values) nil)
                   (funcall mode +1)))
-            (when-let (old-val (assq mode doom-docs--initial-values))
+            (when-let* ((old-val (assq mode doom-docs--initial-values)))
               (funcall mode (if old-val +1 -1)))))
         doom-docs-mode-alist)
   (unless doom-docs-mode
@@ -428,13 +427,13 @@ This primes `org-mode' for reading."
 
 (defvar doom-docs--id-locations nil)
 (defvar doom-docs--id-files nil)
+(defvar doom-docs--id-location-file (file-name-concat doom-cache-dir "doom-docs-org-ids"))
 ;;;###autoload
 (defun doom/reload-docs (&optional force)
   "Reload the ID locations in Doom's documentation and open docs buffers."
   (interactive (list 'interactive))
   (with-temp-buffer
-    (let ((org-id-locations-file
-           (doom-path (file-truename doom-cache-dir) "doom-docs-org-ids"))
+    (let ((org-id-locations-file doom-docs--id-location-file)
           (org-id-track-globally t)
           org-agenda-files
           org-id-extra-files
@@ -443,7 +442,7 @@ This primes `org-mode' for reading."
           org-id-extra-files
           (org-inhibit-startup t)
           org-mode-hook)
-      (if force
+      (if (or force (not (file-exists-p org-id-locations-file)))
           (org-id-update-id-locations
            (doom-files-in (list doom-docs-dir doom-modules-dir)
                           :match "/[^.].+\\.org$"))
@@ -465,14 +464,33 @@ This primes `org-mode' for reading."
   (let ((org-id-link-to-org-use-id t)
         (org-id-method 'uuid)
         (org-id-track-globally t)
-        (org-id-locations-file (doom-path doom-cache-dir "doom-docs-org-ids"))
+        (org-id-locations-file doom-docs--id-location-file)
         (org-id-locations doom-docs--id-locations)
         (org-id-files doom-docs--id-files))
-    (doom/reload-docs)
-    (let ((id (org-id-new)))
-      (org-id-add-location
-       id (buffer-file-name (buffer-base-buffer)))
-      id)))
+    (doom/reload-docs force?)
+    (when-let* ((fname (buffer-file-name (buffer-base-buffer))))
+      (let ((id (org-id-new)))
+        (org-id-add-location id fname)
+        id))))
+
+(defconst doom-docs-org-font-lock-keywords
+  '(("^\\( *\\)#\\+begin_quote\n\\1 \\([󰝗󱌣󰐃󰔓󰟶󰥔]\\) "
+     2 (pcase (match-string 2)
+         ("󰝗" 'font-lock-comment-face)
+         ("󱌣" 'font-lock-comment-face)
+         ("󰐃" 'error)
+         ("󰔓" 'success)
+         ("󰟶" 'font-lock-keyword-face)
+         ("󰥔" 'font-lock-constant-face)
+         ("" 'warning))))
+  "Extra font-lock keywords for Doom documentation.")
+
+(defvar doom-docs-org-mode-map
+  (let ((map (make-sparse-keymap))
+        (cmd (cmds! buffer-read-only #'kill-current-buffer)))
+    (define-key map "q" cmd)
+    (define-key map [remap evil-record-macro] cmd)
+    map))
 
 ;;;###autoload
 (define-derived-mode doom-docs-org-mode org-mode "Doom Docs"
@@ -481,6 +499,7 @@ This primes `org-mode' for reading."
 Keeps track of its own IDs in `doom-docs-dir' and toggles `doom-docs-mode' when
 `read-only-mode' is activated."
   :after-hook (visual-line-mode -1)
+  (font-lock-add-keywords nil doom-docs-org-font-lock-keywords)
   (let ((gc-cons-threshold most-positive-fixnum)
         (gc-cons-percentage 1.0))
     (require 'org-id)
@@ -488,7 +507,7 @@ Keeps track of its own IDs in `doom-docs-dir' and toggles `doom-docs-mode' when
     (setq-local org-id-link-to-org-use-id t
                 org-id-method 'uuid
                 org-id-track-globally t
-                org-id-locations-file (doom-path doom-cache-dir "doom-docs-org-ids")
+                org-id-locations-file doom-docs--id-location-file
                 org-id-locations doom-docs--id-locations
                 org-id-files doom-docs--id-files
                 org-num-max-level 3
@@ -540,4 +559,5 @@ Keeps track of its own IDs in `doom-docs-dir' and toggles `doom-docs-mode' when
 
 (add-hook 'doom-docs-org-mode-hook #'doom-docs-read-only-h)
 
+(provide 'doom-lib '(docs))
 ;;; docs.el ends here

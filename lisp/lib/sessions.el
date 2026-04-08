@@ -29,17 +29,17 @@
          (setq persp-auto-save-opt 0)
          (persp-save-state-to-file file))
         ((and (require 'frameset nil t)
-              (require 'restart-emacs nil t))
-         (let ((frameset-filter-alist (append '((client . restart-emacs--record-tty-file))
-                                              frameset-filter-alist))
-               (desktop-base-file-name (file-name-nondirectory file))
+              (require 'desktop nil t))
+         (let ((desktop-base-file-name (file-name-nondirectory file))
                (desktop-dirname (file-name-directory file))
                (desktop-restore-eager t)
                desktop-file-modtime)
            (make-directory desktop-dirname t)
            ;; Prevents confirmation prompts
-           (let ((desktop-file-modtime (nth 5 (file-attributes (desktop-full-file-name)))))
-             (desktop-save desktop-dirname t))))
+           (let ((desktop-file-modtime
+                  (file-attribute-modification-time
+                   (file-attributes (desktop-full-file-name)))))
+             (desktop-save desktop-dirname))))
         ((error "No session backend to save session with"))))
 
 ;;;###autoload
@@ -58,8 +58,27 @@
                     do (persp-kill name))
            (persp-load-state-from-file file)))
         ((and (require 'frameset nil t)
-              (require 'restart-emacs nil t))
-         (restart-emacs--restore-frames-using-desktop file))
+              (require 'desktop nil t))
+         (let* ((file (expand-file-name (doom-session-file)))
+                desktop-file-modtime
+                (desktop-dirname (file-name-directory file))
+                (desktop-base-file-name (file-name-nondirectory file))
+                (desktop-base-lock-name (concat desktop-base-file-name ".lock"))
+                (desktop-restore-reuses-frames nil)
+                ;; Disable prompts for safe variables during restoration
+                (enable-local-variables :safe)
+                ;; We mock these two functions while restoring frames Calls to
+                ;; `display-color-p' blocks Emacs in daemon mode (possibly)
+                ;; because the call fails
+                (display-color-p (symbol-function 'display-color-p))
+                ;; We mock `display-graphic-p' since desktop mode has changed to
+                ;; not restore frames when we are not on graphic display
+                (display-graphic-p (symbol-function 'display-graphic-p)))
+           (if (daemonp)
+               (letf! ((#'display-color-p #'ignore)
+                       (#'display-graphic-p #'ignore))
+                 (desktop-read desktop-dirname))
+             (desktop-read desktop-dirname))))
         ((error "No session backend to load session with"))))
 
 
@@ -67,12 +86,17 @@
 ;;; Commands
 
 ;;;###autoload
-(defun doom/quickload-session ()
-  "TODO"
-  (interactive)
-  (message "Restoring session...")
-  (doom-load-session)
-  (message "Session restored. Welcome back."))
+(defun doom/quickload-session (force)
+  "Load the last session saved.
+If the FORCE \\[universal-argument] is provided
+then no confirmation is asked."
+  (interactive "P")
+  (if (or force
+          (yes-or-no-p "This will wipe your current session, do you want to continue? "))
+      (progn (message "Restoring session...")
+             (doom-load-session)
+             (message "Session restored. Welcome back."))
+    (message "Session not restored.")))
 
 ;;;###autoload
 (defun doom/quicksave-session ()
@@ -118,35 +142,9 @@
 
 Unlike `doom/restart-and-restore', does not restart the current session."
   (interactive)
-  (require 'restart-emacs)
+  (unless (fboundp 'restart-emacs)
+    (user-error "Cannot restart Emacs 28 or older"))
   (restart-emacs))
 
-;;;###autoload
-(defun doom/restart-and-restore (&optional debug)
-  "Restart Emacs (and the daemon, if active).
-
-If DEBUG (the prefix arg) is given, start the new instance with the --debug
-switch."
-  (interactive "P")
-  (require 'restart-emacs)
-  (doom/quicksave-session)
-  (save-some-buffers nil t)
-  (letf! ((#'save-buffers-kill-emacs #'kill-emacs)
-          (confirm-kill-emacs)
-          (tmpfile (make-temp-file "post-load")))
-    ;; HACK `restart-emacs' does not properly escape arguments on Windows (in
-    ;;   `restart-emacs--daemon-on-windows' and
-    ;;   `restart-emacs--start-gui-on-windows'), so don't give it complex
-    ;;   arguments at all. Should be fixed upstream, but restart-emacs seems to
-    ;;   be unmaintained.
-    (with-temp-file tmpfile
-      (print `(progn
-                (when (boundp 'doom-version)
-                  (add-hook 'window-setup-hook #'doom-load-session 100))
-                (delete-file ,tmpfile))
-             (current-buffer)))
-    (restart-emacs
-     (append (if debug (list "--debug-init"))
-             (when (boundp 'chemacs-current-emacs-profile)
-               (list "--with-profile" chemacs-current-emacs-profile))
-             (list "-l" tmpfile)))))
+(provide 'doom-lib '(sessions))
+;;; sessions.el ends here

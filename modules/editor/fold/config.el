@@ -1,12 +1,28 @@
 ;;; editor/fold/config.el -*- lexical-binding: t; -*-
 
+(defcustom +fold-ellipsis " [...] "
+  "The ellipsis to show for ellided regions (folds).
+
+`org-ellipsis' and `truncate-string-ellipsis' are set to this."
+  :type 'string
+  :group '+fold)
+
+(defface +fold-hideshow-folded-face
+  `((t (:inherit font-lock-comment-face :weight light)))
+  "Face to hightlight `hideshow' overlays."
+  :group 'doom-themes)
+
+
+;;
+;;; Global config
+
 (when (modulep! :editor evil)
   ;; Add vimish-fold, outline-mode & hideshow support to folding commands
   (define-key! 'global
     [remap evil-toggle-fold]   #'+fold/toggle
     [remap evil-close-fold]    #'+fold/close
     [remap evil-open-fold]     #'+fold/open
-    [remap evil-open-fold-rec] #'+fold/open
+    [remap evil-open-fold-rec] #'+fold/open-rec
     [remap evil-close-folds]   #'+fold/close-all
     [remap evil-open-folds]    #'+fold/open-all)
   (after! evil
@@ -18,9 +34,12 @@
       "zd" #'vimish-fold-delete
       "zE" #'vimish-fold-delete-all)))
 
+(after! org
+  (setq org-ellipsis +fold-ellipsis))
+
 
 ;;
-;; Packages
+;;; Packages
 
 (use-package! hideshow ; built-in
   :commands (hs-toggle-hiding
@@ -36,8 +55,7 @@
   (defadvice! +fold--hideshow-ensure-mode-a (&rest _)
     "Ensure `hs-minor-mode' is enabled when we need it, no sooner or later."
     :before '(hs-toggle-hiding hs-hide-block hs-hide-level hs-show-all hs-hide-all)
-    (unless (bound-and-true-p hs-minor-mode)
-      (hs-minor-mode +1)))
+    (+fold--ensure-hideshow-mode))
 
   ;; extra folding support for more languages
   (unless (assq 't hs-special-modes-alist)
@@ -81,20 +99,13 @@
              evil-vimish-fold/delete evil-vimish-fold/delete-all
              evil-vimish-fold/create evil-vimish-fold/create-line)
   :init
-  (setq vimish-fold-dir (concat doom-cache-dir "vimish-fold/")
+  (setq vimish-fold-dir (file-name-concat doom-profile-cache-dir "vimish-fold/")
         vimish-fold-indication-mode 'right-fringe)
   :config
   (vimish-fold-global-mode +1))
 
-(use-package! ts-fold
-  :when (modulep! :tools tree-sitter)
-  :after tree-sitter
-  :config
-  ;; we want to use our own face so we nullify this one to have no effect and
-  ;; make it more similar to hideshows
-  (custom-set-faces! '(ts-fold-replacement-face :foreground unspecified
-                                                :box nil
-                                                :inherit font-lock-comment-face
-                                                :weight light))
-  (setq ts-fold-replacement "  [...]  ")
-  (ts-fold-mode +1))
+
+;; Will be autoloaded by fold commands
+(use-package! treesit-fold
+  :defer t
+  :config (global-treesit-fold-mode +1))

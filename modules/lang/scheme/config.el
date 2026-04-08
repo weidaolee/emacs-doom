@@ -1,8 +1,10 @@
 ;;; lang/scheme/config.el -*- lexical-binding: t; -*-
 
 (use-package! scheme
-  :hook (scheme-mode . rainbow-delimiters-mode)
-  :config (advice-add #'scheme-indent-function :override #'+scheme-indent-function-a))
+  :interpreter ("scsh" . scheme-mode)
+  :config
+  (set-formatter! 'lisp-indent #'apheleia-indent-lisp-buffer :modes '(scheme-mode))
+  (advice-add #'scheme-indent-function :override #'+scheme-indent-function-a))
 
 
 (use-package! geiser
@@ -11,7 +13,7 @@
   (setq geiser-autodoc-identifier-format "%s → %s"
         geiser-repl-per-project-p t
         geiser-repl-current-project-function #'doom-project-root
-        geiser-repl-history-filename (concat doom-cache-dir "geiser-history"))
+        geiser-repl-history-filename (file-name-concat doom-profile-cache-dir "geiser-history"))
 
   (after! scheme  ; built-in
     (set-repl-handler! 'scheme-mode #'+scheme/open-repl
@@ -75,7 +77,7 @@
 
 (use-package! flycheck-guile
   :when (modulep! +guile)
-  :when (modulep! :checkers syntax)
+  :when (modulep! :checkers syntax -flymake)
   :after geiser)
 
 ;; Add Guix channels to Guile load path

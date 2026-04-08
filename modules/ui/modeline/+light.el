@@ -113,11 +113,10 @@ side of the modeline, and whose CDR is the right-hand side.")
   "Build from ICON-SET the ICON with LABEL.
 Using optionals attributes FACE, HELP-ECHO and VOFFSET."
   (let ((icon-set-fn (pcase icon-set
-                       ('octicon #'all-the-icons-octicon)
-                       ('faicon #'all-the-icons-faicon)
-                       ('material #'all-the-icons-material)
-                       ('alltheicon #'all-the-icons-alltheicon)
-                       ('fileicon #'all-the-icons-fileicon))))
+                       ('octicon #'nerd-icons-octicon)
+                       ('faicon #'nerd-icons-faicon)
+                       ('codicon #'nerd-icons-codicon)
+                       ('material #'nerd-icons-mdicon))))
     (propertize (concat (funcall icon-set-fn
                                  icon
                                  :face face
@@ -130,7 +129,7 @@ Using optionals attributes FACE, HELP-ECHO and VOFFSET."
   "Set the modeline to NAME.
 If DEFAULT is non-nil, apply to all future buffers. Modelines are defined with
 `def-modeline!'."
-  (if-let (format (assq name +modeline-format-alist))
+  (if-let* ((format (assq name +modeline-format-alist)))
       (cl-destructuring-bind (lhs . rhs) (cdr format)
         (if default
             (setq-default +modeline-format-left lhs
@@ -290,7 +289,7 @@ Requires `anzu', also `evil-anzu' if using `evil-mode' for compatibility with
                           (evil-mc-frozen 'doom-modeline-highlight)
                           ('doom-modeline-alternate-highlight))))
           (concat (propertize " " 'face face)
-                  (all-the-icons-faicon "i-cursor" :face face :v-adjust -0.0575)
+                  (nerd-icons-faicon "nf-fa-i_cursor" :face face :v-adjust -0.0575)
                   (propertize " " 'face `(:inherit (variable-pitch ,face)))
                   (propertize (format "%d " count)
                               'face face)))))))
@@ -332,7 +331,7 @@ Requires `anzu', also `evil-anzu' if using `evil-mode' for compatibility with
                             "Macro")
                           'face 'doom-modeline-highlight)
               sep
-              (all-the-icons-octicon "triangle-right"
+              (nerd-icons-octicon "nf-oct-triangle_right"
                                      :face 'doom-modeline-highlight
                                      :v-adjust -0.05)
               sep))))
@@ -362,14 +361,14 @@ Requires `anzu', also `evil-anzu' if using `evil-mode' for compatibility with
 ;;; `+modeline-buffer-identification'
 (defvar-local +modeline--buffer-id-cache nil)
 
-;; REVIEW Generating the buffer's file name can be relatively expensive.
-;;        Compounded with how often the modeline updates this can add up, so
-;;        we cache it ahead of time.
+;; REVIEW: Generating the buffer's file name can be relatively expensive.
+;;   Compounded with how often the modeline updates this can add up, so we cache
+;;   it ahead of time.
 (add-hook! '(change-major-mode-after-body-hook
              ;; In case the user saves the file to a new location
              after-save-hook
              ;; ...or makes external changes then returns to Emacs
-             focus-in-hook
+             doom-switch-frame-hook
              ;; ...or when we change the current project!
              projectile-after-switch-project-hook
              ;; ...when the visited file changes (e.g. it's renamed)
@@ -383,7 +382,7 @@ Requires `anzu', also `evil-anzu' if using `evil-mode' for compatibility with
               (unless (or (null default-directory)
                           (null file-name)
                           (file-remote-p file-name))
-                (when-let (project-root (doom-project-root))
+                (when-let* ((project-root (doom-project-root)))
                   (file-relative-name (or buffer-file-truename (file-truename file-name))
                                       (concat project-root "..")))))))))
 
@@ -418,7 +417,7 @@ Requires `anzu', also `evil-anzu' if using `evil-mode' for compatibility with
                    (let ((error (or .error 0))
                          (warning (or .warning 0))
                          (info (or .info 0)))
-                     (+modeline-format-icon 'material "do_not_disturb_alt"
+                     (+modeline-format-icon 'codicon "nf-cod-error"
                                             (number-to-string (+ error warning info))
                                             (cond ((> error 0)   'error)
                                                   ((> warning 0) 'warning)
@@ -427,11 +426,11 @@ Requires `anzu', also `evil-anzu' if using `evil-mode' for compatibility with
                                                     error
                                                     warning
                                                     info))))
-               (+modeline-format-icon 'material "check" "" 'success)))
-            (`running     (+modeline-format-icon 'material "access_time" "*" 'mode-line-inactive "Running..."))
-            (`errored     (+modeline-format-icon 'material "sim_card_alert" "!" 'error "Errored!"))
-            (`interrupted (+modeline-format-icon 'material "pause" "!" 'mode-line-inactive "Interrupted"))
-            (`suspicious  (+modeline-format-icon 'material "priority_high" "!" 'error "Suspicious"))))))
+               (+modeline-format-icon 'material "nf-md-check" "" 'success)))
+            (`running     (+modeline-format-icon 'faicon "nf-fa-hourglass" "*" 'mode-line-inactive "Running..."))
+            (`errored     (+modeline-format-icon 'material "nf-md-sim_alert" "!" 'error "Errored!"))
+            (`interrupted (+modeline-format-icon 'material "nf-md-pause" "!" 'mode-line-inactive "Interrupted"))
+            (`suspicious  (+modeline-format-icon 'material "nf-md-priority_high" "!" 'error "Suspicious"))))))
 
 
 
@@ -475,7 +474,7 @@ lines are selected, or the NxM dimensions of a block selection.")
 (defun +modeline-add-selection-segment-h ()
   (add-to-list '+modeline-format-left '+modeline-selection-info 'append))
 (defun +modeline-remove-selection-segment-h ()
-  (delq! '+modeline-selection-info +modeline-format-left))
+  (cl-callf2 delq '+modeline-selection-info +modeline-format-left))
 
 (if (featurep 'evil)
     (progn
@@ -490,7 +489,7 @@ lines are selected, or the NxM dimensions of a block selection.")
   `(:eval
     (let ((sys (coding-system-plist buffer-file-coding-system))
           (eol (coding-system-eol-type-mnemonic buffer-file-coding-system)))
-      (concat (unless (equal eol ,(if IS-WINDOWS "CRLF" "LF"))
+      (concat (unless (equal eol ,(if (featurep :system 'windows) "CRLF" "LF"))
                 (concat "  " eol " "))
               (if (memq (plist-get sys :category)
                         '(coding-category-undecided coding-category-utf-8))
@@ -532,7 +531,7 @@ lines are selected, or the NxM dimensions of a block selection.")
     mode-line-misc-info
     +modeline-modes
     (vc-mode ("  "
-              ,(all-the-icons-octicon "git-branch" :v-adjust 0.0)
+              ,(nerd-icons-octicon "nf-oct-git_branch" :v-adjust 0.0)
               vc-mode " "))
     "  "
     +modeline-encoding
@@ -540,8 +539,8 @@ lines are selected, or the NxM dimensions of a block selection.")
 
 (def-modeline! 'project
   `(" "
-    ,(all-the-icons-octicon
-      "file-directory"
+    ,(nerd-icons-octicon
+      "nf-oct-file_directory"
       :face 'bold
       :v-adjust -0.06
       :height 1.1)
@@ -563,12 +562,13 @@ lines are selected, or the NxM dimensions of a block selection.")
   `(""
     +modeline-modes
     "  "))
-;; TODO (def-modeline! helm ...)
+;; TODO: (def-modeline! helm ...)
 
 
 ;; Other modes
 (set-modeline! :main 'default)
-(set-modeline-hook! '+doom-dashboard-mode-hook 'project)
+(set-modeline-hook! '+doom-dashboard-mode-hook 'project) ; DEPRECATED
+(set-modeline-hook! '+dashboard-mode-hook 'project)
 (set-modeline-hook! 'pdf-tools-enabled-hook 'pdf)
 (set-modeline-hook! '(special-mode-hook
                       image-mode-hook

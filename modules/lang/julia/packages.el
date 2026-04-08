@@ -1,10 +1,16 @@
 ;; -*- no-byte-compile: t; -*-
 ;;; lang/julia/packages.el
 
-(package! julia-mode :pin "7aafa8e77df64a47fa4729a0c1ea572b5bc8e30e")
-(package! julia-repl :pin "57a15dfafed680ad7d81f779d414e8cb6717417c")
+(package! julia-mode :pin "1478898ea0ab1ae21ec053fcc81c6b42136a2224")
+(package! julia-repl :pin "0173237a43d9a42f0d69a5405283fabe1ac602a0")
+
+(when (and (modulep! +tree-sitter) (treesit-available-p))
+  (package! julia-ts-mode :pin "d693c6b35d3aed986b2700a3b5f910de12d6c53c"))
 
 (when (modulep! +lsp)
   (if (modulep! :tools lsp +eglot)
-      (package! eglot-jl :pin "2e04597223553a369dd5b6520b6365b41e6ea508")
-    (package! lsp-julia :pin "d6688bb131ff4a5a0201f6d3826ef0b018265389")))
+      (package! eglot-jl :pin "7c968cc61fb64016ebe6dc8ff83fd05923db4374")
+    (package! lsp-julia :pin "c869b2f6c05a97e5495ed3cc6710a33b4faf41a2")))
+
+(when (modulep! +snail)
+  (package! julia-snail :pin "95905e9d6bbf5657b16a307b120d9efb10ac692b"))

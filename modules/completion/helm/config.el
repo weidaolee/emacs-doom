@@ -1,23 +1,5 @@
 ;;; completion/helm/config.el -*- lexical-binding: t; -*-
 
-;; Posframe (requires +childframe)
-(defvar +helm-posframe-handler #'posframe-poshandler-frame-center
-  "The function that determines the location of the childframe.
-It should return a cons cell representing the X and Y coordinates. See
-`posframe-poshandler-frame-center' as a reference.")
-
-(defvar +helm-posframe-text-scale 1
-  "The text-scale to use in the helm childframe. Set to nil for no scaling.
-Can be negative.")
-
-(defvar +helm-posframe-parameters
-  '((internal-border-width . 8)
-    (width . 0.65)
-    (height . 0.35)
-    (min-width . 80)
-    (min-height . 16))
-  "Default parameters for the helm childframe.")
-
 ;;
 ;;; Packages
 
@@ -43,7 +25,9 @@ Can be negative.")
         ;; symbol at point.
         helm-imenu-execute-action-at-once-if-one nil
         ;; Disable special behavior for left/right, M-left/right keys.
-        helm-ff-lynx-style-map nil)
+        helm-ff-lynx-style-map nil
+        ;; Don't commandeer the entire frame for helm commands.
+        helm-always-two-windows nil)
 
   (map! [remap apropos]                   #'helm-apropos
         [remap find-library]              #'helm-locate-library
@@ -100,11 +84,7 @@ Can be negative.")
   (set-popup-rule! "^\\*helm" :vslot -100 :size 0.22 :ttl nil)
 
   ;; Hide minibuffer if `helm-echo-input-in-header-line'
-  (add-hook 'helm-minibuffer-set-up-hook #'helm-hide-minibuffer-maybe)
-
-  ;; Use helpful instead of describe-* to display documentation
-  (dolist (fn '(helm-describe-variable helm-describe-function))
-    (advice-add fn :around #'doom-use-helpful-a)))
+  (add-hook 'helm-minibuffer-set-up-hook #'helm-hide-minibuffer-maybe))
 
 
 (use-package! helm-posframe
@@ -148,7 +128,7 @@ Can be negative.")
 
 (defvar helm-generic-files-map (make-sparse-keymap))
 (after! helm-locate
-  (when (and IS-MAC
+  (when (and (featurep :system 'macos)
              (null helm-locate-command)
              (executable-find "mdfind"))
     (setq helm-locate-command "mdfind -name %s"))
@@ -160,9 +140,8 @@ Can be negative.")
   :defer t
   :init
   (after! helm-mode
-    (pushnew! helm-completing-read-handlers-alist
-              '(org-capture . helm-org-completing-read-tags)
-              '(org-set-tags . helm-org-completing-read-tags))))
+    (add-to-list 'helm-completing-read-handlers-alist '(org-capture . helm-org-completing-read-tags))
+    (add-to-list 'helm-completing-read-handlers-alist '(org-set-tags . helm-org-completing-read-tags))))
 
 
 ;; DEPRECATED: Remove when projectile is replaced with project.el
@@ -184,18 +163,22 @@ Can be negative.")
         swiper-helm-display-function
         (lambda (buf &optional _resume) (pop-to-buffer buf)))
   (global-set-key [remap swiper] #'swiper-helm)
-  (add-to-list 'swiper-font-lock-exclude #'+doom-dashboard-mode nil #'eq))
+  (add-to-list 'swiper-font-lock-exclude #'+doom-dashboard-mode nil #'eq) ; DEPRECATED
+  (add-to-list 'swiper-font-lock-exclude #'+dashboard-mode nil #'eq))
 
 
 (use-package! helm-descbinds
-  :hook (helm-mode . helm-descbinds-mode))
+  :hook (helm-mode . helm-descbinds-mode)
+  :config
+  ;; HACK: Upstream claims that the two packages are incompatible, but changing
+  ;;   `prefix-help-command' seems to smooth the incompatibility over. More
+  ;;   testing is needed...
+  (setq helm-descbinds-disable-which-key nil
+        prefix-help-command #'helm-descbinds))
 
 
 (use-package! helm-icons
   :when (modulep! +icons)
   :hook (helm-mode . helm-icons-enable)
   :init
-  (setq helm-icons-provider 'all-the-icons)
-  :config
-  (when (eq helm-icons-provider 'all-the-icons)
-    (setq helm-icons-mode->icon nil)))
+  (setq helm-icons-provider 'nerd-icons))

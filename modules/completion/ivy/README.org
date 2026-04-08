@@ -3,6 +3,12 @@
 #+created:  February 20, 2017
 #+since:    2.0.0
 
+#+begin_quote
+  *This module is deprecated* in favor of the [[doom-module::completion vertico]]
+    module. This module will be in maintenance mode until it is eventually
+    removed. Consider switching to the Vertico module instead.
+#+end_quote
+
 * Description :unfold:
 This module provides Ivy integration for a variety of Emacs commands, as well as
 a unified interface for project search and replace, powered by [[https://github.com/BurntSushi/ripgrep/][ripgrep]].
@@ -27,7 +33,7 @@ lighter, simpler and faster in many cases.
   Enable prescient filtering and sorting for Ivy searches.
 
 ** Packages
-- [[doom-package:all-the-icons-ivy]]* if [[doom-module:+icons]]
+- [[doom-package:nerd-icons-ivy]]* if [[doom-module:+icons]]
 - [[doom-package:amx]]
 - [[doom-package:counsel]]
 - [[doom-package:counsel-projectile]]
@@ -64,7 +70,7 @@ use their associated Helm command or plugin.
 
 * TODO Usage
 #+begin_quote
- 🔨 /This module's usage documentation is incomplete./ [[doom-contrib-module:][Complete it?]]
+ 󱌣 /This module's usage documentation is incomplete./ [[doom-contrib-module:][Complete it?]]
 #+end_quote
 
 [[doom-package:ivy]] is a /large/ framework for completing things. Covering all its features is
@@ -169,14 +175,23 @@ A wgrep buffer can be opened from swiper with [[kbd:][C-c C-e]].
 
 * TODO Configuration
 #+begin_quote
- 🔨 /This module's configuration documentation is incomplete./ [[doom-contrib-module:][Complete it?]]
+ 󱌣 /This module's configuration documentation is incomplete./ [[doom-contrib-module:][Complete it?]]
 #+end_quote
 
 ** TODO Enable fuzzy/non-fuzzy search for specific commands
 ** TODO Change the position of the ivy childframe
 
 * TODO Troubleshooting
-/There are no known problems with this module./ [[doom-report:][Report one?]]
+** Sorting is not applied at all sometimes
+If the number of candidates is greater than ~ivy-sort-max-size~, sorting will be
+disabled completely. Doom lowers the default value to prevent performance
+issues, so increasing the value may fix your issue:
+#+begin_src elisp
+;;; add to $DOOMDIR/config.el
+(with-eval-after-load 'ivy
+  (setq ivy-sort-max-size 30000))  ; Doom sets this to 7500, but Ivy's default is 30k
+#+end_src
+
 
 * Frequently asked questions
 [[doom-suggest-faq:][Ask a question?]]
@@ -186,5 +201,5 @@ See [[id:4f36ae11-1da8-4624-9c30-46b764e849fc][this answer]].
 
 * TODO Appendix
 #+begin_quote
- 🔨 This module has no appendix yet. [[doom-contrib-module:][Write one?]]
+ 󱌣 This module has no appendix yet. [[doom-contrib-module:][Write one?]]
 #+end_quote

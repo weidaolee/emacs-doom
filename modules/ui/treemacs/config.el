@@ -1,17 +1,22 @@
 ;;; ui/treemacs/config.el -*- lexical-binding: t; -*-
 
-(defvar +treemacs-git-mode 'simple
+(defcustom +treemacs-git-mode 'simple
   "Type of git integration for `treemacs-git-mode'.
 
-There are 3 possible values:
+Controls how much git-based highlighting to perform. This recognizes four
+settings:
 
-  1) `simple', which highlights only files based on their git status, and is
-     slightly faster,
-  2) `extended', which highlights both files and directories, but requires
-     python,
-  3) `deferred', same as extended, but highlights asynchronously.
+  simple     Highlight only files
+  extended   Highlight both files and directories (requires python)
+  deferred   Same as extended, but asynchronous
+  nil        No git-based highlighting
 
-This must be set before `treemacs' has loaded.")
+This must be set before `treemacs' has loaded."
+  :type '(choice (const :tag "Only highlight files based on git status" simple)
+                 (const :tag "Highly files and directories" extended)
+                 (const :tag "Same as extended, but async" deferred)
+                 (const :tag "Disabled" nil))
+  :group '+treemacs)
 
 
 ;;
@@ -23,15 +28,18 @@ This must be set before `treemacs' has loaded.")
   (setq treemacs-follow-after-init t
         treemacs-is-never-other-window t
         treemacs-sorting 'alphabetic-case-insensitive-asc
-        treemacs-persist-file (concat doom-cache-dir "treemacs-persist")
-        treemacs-last-error-persist-file (concat doom-cache-dir "treemacs-last-error-persist"))
+        treemacs-persist-file (file-name-concat doom-profile-cache-dir "treemacs-persist")
+        treemacs-last-error-persist-file (file-name-concat doom-profile-cache-dir "treemacs-last-error-persist"))
   :config
-  ;; Don't follow the cursor
+  (set-popup-rule! "^ ?\\*Treemacs" :ignore t)
+
+  ;; Don't follow the cursor (too disruptive/jarring for a default)
   (treemacs-follow-mode -1)
 
   (when +treemacs-git-mode
     ;; If they aren't supported, fall back to simpler methods
     (when (and (memq +treemacs-git-mode '(deferred extended))
+               (not treemacs-python-executable)
                (not (executable-find "python3")))
       (setq +treemacs-git-mode 'simple))
     (treemacs-git-mode +treemacs-git-mode)
@@ -39,6 +47,16 @@ This must be set before `treemacs' has loaded.")
           (if (memq +treemacs-git-mode '(extended deferred))
               3
             0))))
+
+
+(use-package! treemacs-nerd-icons
+  :defer t
+  ;; HACK: Because `lsp-treemacs' mutates Treemacs' default theme, and
+  ;;   `treemacs-nerd-icons' reads from it to populate its nerd-icons theme,
+  ;;   load order is important to ensure they don't step on each other's toes.
+  :init (with-eval-after-load (if (modulep! +lsp) 'lsp-treemacs 'treemacs)
+          (require 'treemacs-nerd-icons))
+  :config (treemacs-load-theme "nerd-icons"))
 
 
 (use-package! treemacs-evil
@@ -52,8 +70,8 @@ This must be set before `treemacs' has loaded.")
     [return] #'treemacs-RET-action
     [tab]    #'treemacs-TAB-action
     "TAB"    #'treemacs-TAB-action
-    ;; REVIEW Fix #1875 to be consistent with C-w {v,s}, but this should really
-    ;;        be considered upstream.
+    ;; REVIEW: Fix #1875 to be consistent with C-w {v,s}, but this should really
+    ;;   be considered upstream.
     "o v"    #'treemacs-visit-node-horizontal-split
     "o s"    #'treemacs-visit-node-vertical-split))
 
@@ -72,6 +90,7 @@ This must be set before `treemacs' has loaded.")
   :after treemacs
   :config (treemacs-set-scope-type 'Perspectives))
 
+
 (use-package! lsp-treemacs
   :when (modulep! +lsp)
-  :after (treemacs lsp))
+  :after treemacs)

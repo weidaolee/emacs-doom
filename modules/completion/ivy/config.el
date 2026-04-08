@@ -62,7 +62,6 @@ results buffer.")
   (setq ivy-height 17
         ivy-wrap t
         ivy-fixed-height-minibuffer t
-        ivy-read-action-function #'ivy-hydra-read-action
         ivy-read-action-format-function #'ivy-read-action-format-columns
         ;; don't show recent files in switch-buffer
         ivy-use-virtual-buffers nil
@@ -98,29 +97,16 @@ results buffer.")
   (after! yasnippet
     (add-hook 'yas-prompt-functions #'+ivy-yas-prompt-fn))
 
-  (after! ivy-hydra
-    ;; Ensure `ivy-dispatching-done' and `hydra-ivy/body' hydras can be
-    ;; exited / toggled by the same key binding they were opened
-    (add-to-list 'ivy-dispatching-done-hydra-exit-keys '("C-o" nil))
-    (defhydra+ hydra-ivy () ("M-o" nil)))
-
   (define-key! ivy-minibuffer-map
     [remap doom/delete-backward-word] #'ivy-backward-kill-word
     "C-c C-e" #'+ivy/woccur
-    "C-o" #'ivy-dispatching-done
-    "M-o" #'hydra-ivy/body))
+    "C-o" #'ivy-dispatching-done))
 
 
 (use-package! ivy-rich
   :after ivy
   :config
   (setq ivy-rich-parse-remote-buffer nil)
-
-  (when (modulep! +icons)
-    (cl-pushnew '(+ivy-rich-buffer-icon)
-                (cadr (plist-get ivy-rich-display-transformers-list
-                                 'ivy-switch-buffer))
-                :test #'equal))
 
   (defun ivy-rich-bookmark-filename-or-empty (candidate)
     (let ((filename (ivy-rich-bookmark-filename candidate)))
@@ -155,25 +141,16 @@ results buffer.")
               (switch-buffer-alist (assq 'ivy-rich-candidate (plist-get plist :columns))))
     (setcar switch-buffer-alist '+ivy-rich-buffer-name))
 
+  (when (modulep! +icons)
+    (nerd-icons-ivy-rich-mode +1))
   (ivy-rich-mode +1)
   (ivy-rich-project-root-cache-mode +1))
 
 
-(use-package! all-the-icons-ivy
+(use-package! nerd-icons-ivy-rich
   :when (modulep! +icons)
-  :after ivy
-  :config
-  ;; `all-the-icons-ivy' is incompatible with ivy-rich's switch-buffer
-  ;; modifications, so we disable them and merge them ourselves
-  (setq all-the-icons-ivy-buffer-commands nil)
-
-  (all-the-icons-ivy-setup)
-  (after! counsel-projectile
-    (let ((all-the-icons-ivy-file-commands
-           '(counsel-projectile
-             counsel-projectile-find-file
-             counsel-projectile-find-dir)))
-      (all-the-icons-ivy-setup))))
+  :commands (nerd-icons-ivy-rich-mode)
+  :after counsel-projectile)
 
 
 (use-package! counsel
@@ -208,9 +185,9 @@ results buffer.")
   :config
   (set-popup-rule! "^\\*ivy-occur" :size 0.35 :ttl 0 :quit nil)
 
-  ;; HACK Fix an issue where `counsel-projectile-find-file-action' would try to
-  ;;      open a candidate in an occur buffer relative to the wrong buffer,
-  ;;      causing it to fail to find the file we want.
+  ;; HACK: Fix an issue where `counsel-projectile-find-file-action' would try to
+  ;;   open a candidate in an occur buffer relative to the wrong buffer, causing
+  ;;   it to fail to find the file we want.
   (defadvice! +ivy--run-from-ivy-directory-a (fn &rest args)
     :around #'counsel-projectile-find-file-action
     (let ((default-directory (ivy-state-directory ivy-last)))
@@ -220,16 +197,26 @@ results buffer.")
   ;; of its own, on top of the defaults.
   (setq ivy-initial-inputs-alist nil)
 
-  ;; REVIEW Counsel allows `counsel-rg-base-command' to be a string or list.
-  ;;        This backwards compatibility complicates things for Doom. Simpler to
-  ;;        just force it to always be a list.
+  ;; REVIEW: Counsel allows `counsel-rg-base-command' to be a string or list.
+  ;;   This backwards compatibility complicates things for Doom. Simpler to just
+  ;;   force it to always be a list.
   (when (stringp counsel-rg-base-command)
     (setq counsel-rg-base-command (split-string counsel-rg-base-command)))
 
-  ;; Integrate with `helpful'
-  (setq counsel-describe-function-function #'helpful-callable
-        counsel-describe-variable-function #'helpful-variable
-        counsel-descbinds-function #'helpful-callable)
+  ;; REVIEW: See abo-abo/swiper#2339.
+  (defadvice! +counsel-rg-suppress-error-code-a (fn &rest args)
+    "Ripgrep returns a non-zero exit code if it encounters any trouble (e.g. you
+don't have the needed permissions for a couple files/directories in a project).
+Even if rg continues to produce workable results, that non-zero exit code causes
+counsel-rg to discard the rest of the output to display an error.
+
+This advice suppresses the error code, so you can still operate on whatever
+workable results ripgrep produces, despite the error."
+    :around #'counsel-rg
+    (letf! (defun process-exit-status (proc)
+             (let ((code (funcall process-exit-status proc)))
+               (if (= code 2) 0 code)))
+      (apply fn args)))
 
   ;; Decorate `doom/help-custom-variable' results the same way as
   ;; `counsel-describe-variable' (adds value and docstring columns).
@@ -237,7 +224,6 @@ results buffer.")
 
   ;; Record in jumplist when opening files via counsel-{ag,rg,pt,git-grep}
   (add-hook 'counsel-grep-post-action-hook #'better-jumper-set-jump)
-  (add-hook 'counsel-grep-post-action-hook #'recenter)
   (ivy-add-actions
    'counsel-rg ; also applies to `counsel-rg'
    '(("O" +ivy-git-grep-other-window-action "open in other window")))
@@ -253,13 +239,14 @@ results buffer.")
   (add-to-list 'ivy-sort-functions-alist '(counsel-imenu))
 
   ;; `counsel-locate'
-  (when IS-MAC
+  (when (featurep :system 'macos)
     ;; Use spotlight on mac by default since it doesn't need any additional setup
     (setq counsel-locate-cmd #'counsel-locate-cmd-mdfind))
 
   ;; `swiper'
   ;; Don't mess with font-locking on the dashboard; it causes breakages
-  (add-to-list 'swiper-font-lock-exclude #'+doom-dashboard-mode)
+  (add-to-list 'swiper-font-lock-exclude #'+doom-dashboard-mode) ; DEPRECATED
+  (add-to-list 'swiper-font-lock-exclude #'+dashboard-mode)
 
   ;; `counsel-find-file'
   (setq counsel-find-file-ignore-regexp "\\(?:^[#.]\\)\\|\\(?:[#~]$\\)\\|\\(?:^Icon?\\)")
@@ -281,24 +268,24 @@ results buffer.")
   (setf (nth 1 (alist-get 'ddg counsel-search-engines-alist))
         "https://duckduckgo.com/?q=")
 
-  ;; REVIEW Move this somewhere else and perhaps generalize this so both
-  ;;        ivy/helm users can enjoy it.
+  ;; REVIEW: Move this somewhere else and perhaps generalize this so both
+  ;;   ivy/helm users can enjoy it.
   (defadvice! +ivy--counsel-file-jump-use-fd-rg-a (args)
     "Change `counsel-file-jump' to use fd or ripgrep, if they are available."
     :override #'counsel--find-return-list
     (cl-destructuring-bind (find-program . args)
-        (cond ((when-let (fd (executable-find (or doom-projectile-fd-binary "fd") t))
+        (cond ((when-let* ((fd (executable-find (or doom-fd-executable "fd") t)))
                  (append (list fd "--hidden" "--type" "file" "--type" "symlink" "--follow" "--color=never")
                          (cl-loop for dir in projectile-globally-ignored-directories
                                   collect "--exclude"
                                   collect dir)
-                         (if IS-WINDOWS '("--path-separator=/")))))
+                         (if (featurep :system 'windows) '("--path-separator=/")))))
               ((executable-find "rg" t)
                (append (list "rg" "--hidden" "--files" "--follow" "--color=never" "--no-messages")
                        (cl-loop for dir in projectile-globally-ignored-directories
                                 collect "--glob"
                                 collect (concat "!" dir))
-                       (if IS-WINDOWS '("--path-separator=/"))))
+                       (if (featurep :system 'windows) '("--path-separator=/"))))
               ((cons find-program args)))
       (unless (listp args)
         (user-error "`counsel-file-jump-args' is a list now, please customize accordingly."))
@@ -315,7 +302,7 @@ results buffer.")
 
 
 (use-package! counsel-projectile
-  :defer t
+  :after ivy-rich
   :init
   (define-key!
     [remap projectile-find-file]        #'+ivy/projectile-find-file
@@ -331,6 +318,14 @@ results buffer.")
   ;; `ivy-sort-max-size' files), or `counsel-projectile-find-file' otherwise.
   (setf (alist-get 'projectile-find-file counsel-projectile-key-bindings)
         #'+ivy/projectile-find-file)
+
+  ;; HACK: Force `counsel-projectile-switch-project' to call
+  ;;   `projectile-relevant-known-projects' and initialize the known projects
+  ;;   list, because otherwise it's trying to read from the
+  ;;   `projectile-known-projects' variable directly instead of calling the
+  ;;   function of the same name.
+  ;; REVIEW: This should be fixed upstream.
+  (setq counsel-projectile-remove-current-project t)
 
   ;; no highlighting visited files; slows down the filtering
   (ivy-set-display-transformer #'counsel-projectile-find-file nil)
@@ -363,16 +358,14 @@ results buffer.")
   ;; posframe.
   (dolist (fn '(swiper counsel-rg counsel-grep counsel-git-grep))
     (setf (alist-get fn ivy-posframe-display-functions-alist)
-          #'ivy-display-function-fallback))
-
-  (add-hook 'doom-after-reload-hook #'posframe-delete-all))
+          #'ivy-display-function-fallback)))
 
 
 (use-package! flx
   :when (modulep! +fuzzy)
   :unless (modulep! +prescient)
   :defer t  ; is loaded by ivy
-  :preface (when (or (not (modulep! +fuzzy))
+  :preface (when (or (modulep! -fuzzy)
                      (modulep! +prescient))
              (setq ivy--flx-featurep nil))
   :init (setq ivy-flx-limit 10000))
@@ -391,7 +384,7 @@ results buffer.")
             '(literal regexp initialism fuzzy)
           '(literal regexp initialism)))
   :config
-  ;; REVIEW Remove when radian-software/prescient.el#102 is resolved
+  ;; REVIEW: Remove when radian-software/prescient.el#102 is resolved
   (add-to-list 'ivy-sort-functions-alist '(ivy-resume))
   (setq ivy-prescient-sort-commands
         '(:not swiper swiper-isearch ivy-switch-buffer lsp-ivy-workspace-symbol
@@ -404,8 +397,8 @@ results buffer.")
     (let ((prescient-filter-method '(literal regexp)))
       (ivy-prescient-re-builder str)))
 
-  ;; NOTE prescient config duplicated with `company'
-  (setq prescient-save-file (concat doom-cache-dir "prescient-save.el")))
+  ;; Prescient config duplicated with `company':
+  (setq prescient-save-file (file-name-concat doom-profile-cache-dir "prescient-save.el")))
 
 
 ;;;###package swiper
@@ -413,4 +406,4 @@ results buffer.")
 
 
 ;;;###package amx
-(setq amx-save-file (concat doom-cache-dir "amx-items"))  ; used by `counsel-M-x'
+(setq amx-save-file (file-name-concat doom-profile-cache-dir "amx-items"))  ; used by `counsel-M-x'

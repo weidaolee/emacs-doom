@@ -53,7 +53,7 @@
   (defvar evil-mc-key-map (make-sparse-keymap))
 
   :config
-  ;; HACK evil-mc's design is bizarre. Its variables and hooks are lazy loaded
+  ;; HACK: evil-mc's design is bizarre. Its variables and hooks are lazy loaded
   ;;   rather than declared at top-level, some hooks aren't defined or
   ;;   documented, it's a bit initializer-function drunk, and its minor modes
   ;;   are intended to be perpetually active -- even when no cursors are active
@@ -73,9 +73,8 @@
     (letf! ((#'evil-mc-initialize-vars #'ignore))
       (apply fn args)))
 
-  ;; REVIEW This is tremendously slow on macos and windows for some reason.
-  (setq evil-mc-enable-bar-cursor (not (or IS-MAC
-                                           IS-WINDOWS)))
+  ;; REVIEW: This is tremendously slow on macos and windows for some reason.
+  (setq evil-mc-enable-bar-cursor (featurep :system 'linux))
 
   (after! smartparens
     ;; Make evil-mc cooperate with smartparens better
@@ -113,8 +112,8 @@
                         (or (cdr fn)
                             #'evil-mc-execute-default-call-with-count))))))
 
-  ;; HACK Allow these commands to be repeated by prefixing them with a numerical
-  ;;      argument. See gabesoft/evil-mc#110
+  ;; HACK: Allow these commands to be repeated by prefixing them with a
+  ;;   numerical argument. See gabesoft/evil-mc#110
   (defadvice! +multiple-cursors--make-repeatable-a (fn)
     :around '(evil-mc-make-and-goto-first-cursor
               evil-mc-make-and-goto-last-cursor
@@ -133,12 +132,11 @@
   ;; our multiple cursors
   (add-hook 'evil-insert-state-entry-hook #'evil-mc-resume-cursors)
 
-  (pushnew! evil-mc-incompatible-minor-modes
-            ;; evil-escape's escape key leaves behind extraneous characters
-            'evil-escape-mode
-            ;; Lispy commands don't register on more than 1 cursor. Lispyville
-            ;; is fine though.
-            'lispy-mode)
+  ;; evil-escape's escape key leaves behind extraneous characters
+  (add-to-list 'evil-mc-incompatible-minor-modes 'evil-escape-mode)
+  ;; Lispy commands don't register on more than 1 cursor. Lispyville is fine
+  ;; though.
+  (add-to-list 'evil-mc-incompatible-minor-modes 'lispy-mode)
 
   (add-hook! 'doom-escape-hook
     (defun +multiple-cursors-escape-multiple-cursors-h ()
@@ -162,12 +160,12 @@
 
 
 (after! multiple-cursors-core
-  (setq mc/list-file (concat doom-data-dir "mc-lists.el"))
+  (setq mc/list-file (file-name-concat doom-profile-data-dir "mc-lists.el"))
 
   ;; Can't use `mc/cmds-to-run-once' because mc-lists.el overwrites it
   (add-to-list 'mc--default-cmds-to-run-once 'swiper-mc)
 
-  ;; TODO multiple-cursors config for Emacs users?
+  ;; TODO: multiple-cursors config for Emacs users?
 
   ;; mc doesn't play well with evil, this attempts to assuage some of its
   ;; problems so that any plugins that depend on multiple-cursors (which I have
@@ -175,12 +173,12 @@
   (when (modulep! :editor evil)
     (evil-define-key* '(normal emacs) mc/keymap [escape] #'mc/keyboard-quit)
 
-    (defvar +mc--compat-evil-prev-state nil)
-    (defvar +mc--compat-mark-was-active nil)
+    (defvar-local +mc--compat-evil-prev-state nil)
+    (defvar-local +mc--compat-mark-was-active nil)
 
     (add-hook! 'multiple-cursors-mode-enabled-hook
       (defun +multiple-cursors-compat-switch-to-emacs-state-h ()
-        (when (and (bound-and-true-p evil-mode)
+        (when (and (bound-and-true-p evil-local-mode)
                    (not (memq evil-state '(insert emacs))))
           (setq +mc--compat-evil-prev-state evil-state)
           (when (region-active-p)
@@ -210,7 +208,7 @@
     ;; how evil deals with regions
     (defadvice! +multiple--cursors-adjust-mark-for-evil-a (&rest _)
       :before #'mc/edit-lines
-      (when (and (bound-and-true-p evil-mode)
+      (when (and (bound-and-true-p evil-local-mode)
                  (not (memq evil-state '(insert emacs))))
         (if (> (point) (mark))
             (goto-char (1- (point)))

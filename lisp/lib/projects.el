@@ -1,10 +1,10 @@
 ;;; lisp/lib/projects.el -*- lexical-binding: t; -*-
 
-;; HACK We forward declare these variables because they are let-bound in a
-;;      number of places with no guarantee that they've been defined yet (i.e.
-;;      that `projectile' is loaded). If a variable is defined with `defvar'
-;;      while it is lexically bound, you get "Defining as dynamic an already
-;;      lexical var" errors in Emacs 28+).
+;; HACK: We forward declare these variables because they are let-bound in a
+;;   number of places with no guarantee that they've been defined yet (i.e.
+;;   that `projectile' is loaded). If a variable is defined with `defvar' while
+;;   it is lexically bound, you get "Defining as dynamic an already lexical var"
+;;   errors in Emacs 28+).
 ;;;###autoload (defvar projectile-project-root nil)
 ;;;###autoload (defvar projectile-enable-caching (not noninteractive))
 ;;;###autoload (defvar projectile-require-project-root 'prompt)
@@ -28,12 +28,23 @@
 ;;; Macros
 
 ;;;###autoload
-(defmacro project-file-exists-p! (files)
-  "Checks if the project has the specified FILES.
-Paths are relative to the project root, unless they start with ./ or ../ (in
-which case they're relative to `default-directory'). If they start with a slash,
-they are absolute."
-  `(file-exists-p! ,files (doom-project-root)))
+(defmacro project-file-exists-p! (files &optional base-directory)
+  "Checks if FILES exist at the current project's root.
+
+The project's root is determined by `projectile', starting from BASE-DIRECTORY
+(defaults to `default-directory'). FILES are paths relative to the project root,
+unless they begin with a slash."
+  `(file-exists-p! ,files (doom-project-root ,base-directory)))
+
+(defun doom--project-completing-read (prompt collection &optional category)
+  (completing-read
+   prompt
+   (if category
+       (lambda (str pred action)
+         (if (eq action 'metadata) ; used by embark/marginalia
+             `(metadata (category . ,category))
+           (complete-with-action action collection str pred)))
+     collection)))
 
 
 ;;
@@ -44,7 +55,8 @@ they are absolute."
   "Performs `projectile-find-file' in a known project of your choosing."
   (interactive
    (list
-    (completing-read "Find file in project: " (projectile-relevant-known-projects))))
+    (doom--project-completing-read
+     "Find file in project: " (projectile-relevant-known-projects) 'project-file)))
   (unless (file-directory-p project-root)
     (error "Project directory '%s' doesn't exist" project-root))
   (doom-project-find-file project-root))
@@ -54,7 +66,8 @@ they are absolute."
   "Performs `find-file' in a known project of your choosing."
   (interactive
    (list
-    (completing-read "Browse in project: " (projectile-relevant-known-projects))))
+    (doom--project-completing-read
+     "Browse in project: " (projectile-relevant-known-projects) 'project-file)))
   (unless (file-directory-p project-root)
     (error "Project directory '%s' doesn't exist" project-root))
   (doom-project-browse project-root))
@@ -78,16 +91,21 @@ file will be created within it so that it will always be treated as one. This
 command will throw an error if a parent of DIR is a valid project (which would
 mask DIR)."
   (interactive "D")
+  (when-let* ((proj-dir (doom-project-root dir)))
+    (if (file-equal-p proj-dir dir)
+        (user-error "ERROR: Directory is already a project: %s" proj-dir)
+      (user-error "ERROR: Directory is already inside another project: %s" proj-dir)))
   (let ((short-dir (abbreviate-file-name dir)))
-    (unless (file-equal-p (doom-project-root dir) dir)
-      (with-temp-file (doom-path dir ".project")))
-    (let ((proj-dir (doom-project-root dir)))
-      (unless (file-equal-p proj-dir dir)
-        (user-error "Can't add %S as a project, because %S is already a project"
-                    short-dir (abbreviate-file-name proj-dir)))
-      (message "%S was not a project; adding .project file to it"
-               short-dir (abbreviate-file-name proj-dir))
-      (projectile-add-known-project dir))))
+    (when (projectile-ignored-project-p dir)
+      (user-error "ERROR: Directory is in projectile's ignore list: %s" short-dir))
+    (dolist (proj projectile-known-projects)
+      (when (file-in-directory-p proj dir)
+        (user-error "ERROR: Directory contains a known project: %s" short-dir))
+      (when (file-equal-p proj dir)
+        (user-error "ERROR: Directory is already a known project: %s" short-dir)))
+    (with-temp-file (doom-path dir ".project"))
+    (message "Added directory as a project: %s" short-dir)
+    (projectile-add-known-project dir)))
 
 
 ;;
@@ -113,8 +131,8 @@ Returns nil if not in a project."
   "Return the name of the current project.
 
 Returns '-' if not in a valid project."
-  (if-let (project-root (or (doom-project-root dir)
-                            (if dir (expand-file-name dir))))
+  (if-let* ((project-root (or (doom-project-root dir)
+                              (if dir (expand-file-name dir)))))
       (funcall projectile-project-name-function project-root)
     "-"))
 
@@ -145,20 +163,23 @@ If DIR is not a project, it will be indexed (but not cached)."
             ;; Intentionally avoid `helm-projectile-find-file', because it runs
             ;; asynchronously, and thus doesn't see the lexical
             ;; `default-directory'
-            (if (doom-module-p :completion 'ivy)
+            (if (doom-module-active-p :completion 'ivy)
                 #'counsel-projectile-find-file
               #'projectile-find-file)))
-          ((and (bound-and-true-p vertico-mode)
-                (fboundp '+vertico/find-file-in))
-           (+vertico/find-file-in default-directory))
           ((and (bound-and-true-p ivy-mode)
                 (fboundp 'counsel-file-jump))
            (call-interactively #'counsel-file-jump))
-          ((project-current nil dir)
-           (project-find-file-in nil nil dir))
           ((and (bound-and-true-p helm-mode)
                 (fboundp 'helm-find-files))
            (call-interactively #'helm-find-files))
+          ((when-let* ((project-current-directory-override dir)
+                       (pr (project-current t dir)))
+             (condition-case _
+                 (project-find-file-in nil (list dir) pr t)
+               ;; FIX: project.el throws errors if DIR is an empty directory,
+               ;;   which is poor UX.
+               (wrong-type-argument
+                (call-interactively #'find-file)))))
           ((call-interactively #'find-file)))))
 
 ;;;###autoload
@@ -166,9 +187,9 @@ If DIR is not a project, it will be indexed (but not cached)."
   "Traverse a file structure starting linearly from DIR."
   (let ((default-directory (file-truename (expand-file-name dir))))
     (call-interactively
-     (cond ((doom-module-p :completion 'ivy)
+     (cond ((doom-module-active-p :completion 'ivy)
             #'counsel-find-file)
-           ((doom-module-p :completion 'helm)
+           ((doom-module-active-p :completion 'helm)
             #'helm-find-files)
            (#'find-file)))))
 
@@ -178,3 +199,6 @@ If DIR is not a project, it will be indexed (but not cached)."
   (unless (file-remote-p project-root)
     (or (file-in-directory-p project-root temporary-file-directory)
         (file-in-directory-p project-root doom-local-dir))))
+
+(provide 'doom-lib '(projects))
+;;; projects.el ends here

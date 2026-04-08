@@ -16,6 +16,8 @@ support.
 ** Packages
 - [[doom-package:calfw]]
 - [[doom-package:calfw-org]]
+- [[doom-package:calfw-cal]]
+- [[doom-package:calfw-ical]]
 - [[doom-package:org-gcal]]
   
 ** Hacks
@@ -34,12 +36,12 @@ This module requires:
 
 * TODO Usage
 #+begin_quote
- 🔨 This module has no usage documentation yet. [[doom-contrib-module:][Write some?]]
+ 󱌣 This module has no usage documentation yet. [[doom-contrib-module:][Write some?]]
 #+end_quote
 
 * TODO Configuration
 #+begin_quote
- 🔨 /This module's configuration documentation is incomplete./ [[doom-contrib-module:][Complete it?]]
+ 󱌣 /This module's configuration documentation is incomplete./ [[doom-contrib-module:][Complete it?]]
 #+end_quote
 
 ** Changing calendar sources
@@ -48,15 +50,15 @@ calendar data from:
 #+begin_src emacs-lisp
 (defun my-open-calendar ()
   (interactive)
-  (cfw:open-calendar-buffer
+  (calfw-open-calendar-buffer
    :contents-sources
    (list
-    (cfw:org-create-source "Green")  ; org-agenda source
-    (cfw:org-create-file-source "cal" "/path/to/cal.org" "Cyan")  ; other org source
-    (cfw:howm-create-source "Blue")  ; howm source
-    (cfw:cal-create-source "Orange") ; diary source
-    (cfw:ical-create-source "Moon" "~/moon.ics" "Gray")  ; ICS source1
-    (cfw:ical-create-source "gcal" "https://..../basic.ics" "IndianRed") ; google calendar ICS
+    (calfw-org-create-source "Green")  ; org-agenda source
+    (calfw-org-create-file-source "cal" "/path/to/cal.org" "Cyan")  ; other org source
+    (calfw-howm-create-source "Blue")  ; howm source
+    (calfw-cal-create-source "Orange") ; diary source
+    (calfw-ical-create-source "Moon" "~/moon.ics" "Gray")  ; ICS source1
+    (calfw-ical-create-source "gcal" "https://..../basic.ics" "IndianRed") ; google calendar ICS
    )))
 #+end_src
 
@@ -74,5 +76,5 @@ to link your calendar with Google calendars.
 
 * TODO Appendix
 #+begin_quote
- 🔨 This module has no appendix yet. [[doom-contrib-module:][Write one?]]
+ 󱌣 This module has no appendix yet. [[doom-contrib-module:][Write one?]]
 #+end_quote

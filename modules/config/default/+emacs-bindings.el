@@ -5,7 +5,7 @@
       doom-localleader-alt-key "C-c l")
 
 ;; persp-mode and projectile in different prefixes
-(setq! persp-keymap-prefix (kbd "C-c w"))
+(setopt persp-keymap-prefix (kbd "C-c w"))
 (after! projectile
   (define-key projectile-mode-map (kbd "C-c p") 'projectile-command-map))
 
@@ -41,7 +41,7 @@
        :desc "Delete trailing whitespace"            "w"   #'delete-trailing-whitespace
        :desc "Delete trailing newlines"              "W"   #'doom/delete-trailing-newlines
        :desc "List errors"                           "x"   #'+default/diagnostics
-       (:when (and (modulep! :tools lsp) (not (modulep! :tools lsp +eglot)))
+       (:when (modulep! :tools lsp -eglot)
         :desc "LSP Code actions"                      "a"   #'lsp-execute-code-action
         :desc "LSP Organize imports"                  "o"   #'lsp-organize-imports
         :desc "LSP Rename"                            "r"   #'lsp-rename
@@ -89,7 +89,7 @@
        :desc "Sudo find file"              "U"   #'doom/sudo-find-file
        :desc "Yank file path"              "y"   #'+default/yank-buffer-path
        :desc "Yank file path from project" "Y"   #'+default/yank-buffer-path-relative-to-project
-       :desc "Open scratch buffer"         "x"   #'doom/open-scratch-buffer
+       :desc "Toggle scratch buffer"       "x"   #'doom/toggle-scratch-buffer
        :desc "Switch to scratch buffer"    "X"   #'doom/switch-to-scratch-buffer)
 
       ;;; <leader> r --- remote
@@ -126,6 +126,9 @@
        :desc "Search .emacs.d"              "e" #'+default/search-emacsd
        :desc "Locate file"                  "f" #'+lookup/file
        :desc "Jump to symbol"               "i" #'imenu
+       :desc "Jump to symbol in open buffers" "I"
+       (cond ((modulep! :completion vertico)   #'consult-imenu-multi)
+             ((modulep! :completion helm)      #'helm-imenu-in-all-buffers))
        :desc "Jump to visible link"         "l" #'link-hint-open-link
        :desc "Jump to link"                 "L" #'ffap-menu
        :desc "Jump to bookmark"             "m" #'bookmark-jump
@@ -145,7 +148,10 @@
 
       ;;; <leader> i --- insert
       (:prefix-map ("i" . "insert")
-       :desc "Emoji"                         "e"   #'emojify-insert-emoji
+       (:when (> emacs-major-version 28)
+         :desc "Emoji"                       "e"   #'emoji-search)
+       (:when (modulep! :ui emoji)
+         :desc "Emoji"                       "e"   #'emojify-insert-emoji)
        :desc "Current file name"             "f"   #'+default/insert-file-path
        :desc "Current file path"             "F"   (cmd!! #'+default/insert-file-path t)
        :desc "Snippet"                       "s"   #'yas-insert-snippet
@@ -164,9 +170,10 @@
 
        :desc "Toggle last org-clock"          "c" #'+org/toggle-last-clock
        :desc "Cancel current org-clock"       "C" #'org-clock-cancel
-       :desc "Open deft"                      "d" #'deft
+       (:when (modulep! :ui deft)
+        :desc "Open deft"                     "d" #'deft)
        (:when (modulep! :lang org +noter)
-        :desc "Org noter"                    "e" #'org-noter)
+        :desc "Org noter"                     "e" #'org-noter)
 
        :desc "Find file in notes"             "f" #'+default/find-in-notes
        :desc "Browse notes"                   "F" #'+default/browse-notes
@@ -186,23 +193,8 @@
          :desc "New Entry"           "j" #'org-journal-new-entry
          :desc "New Scheduled Entry" "J" #'org-journal-new-scheduled-entry
          :desc "Search Forever"      "s" #'org-journal-search-forever))
-       (:when (modulep! :lang org +roam)
-        (:prefix ("r" . "roam")
-         :desc "Switch to buffer"              "b" #'org-roam-switch-to-buffer
-         :desc "Org Roam Capture"              "c" #'org-roam-capture
-         :desc "Find file"                     "f" #'org-roam-find-file
-         :desc "Show graph"                    "g" #'org-roam-graph
-         :desc "Insert"                        "i" #'org-roam-insert
-         :desc "Insert (skipping org-capture)" "I" #'org-roam-insert-immediate
-         :desc "Org Roam"                      "r" #'org-roam
-         :desc "Tag"                           "t" #'org-roam-tag-add
-         :desc "Un-tag"                        "T" #'org-roam-tag-delete
-         (:prefix ("d" . "by date")
-          :desc "Arbitrary date" "d" #'org-roam-dailies-find-date
-          :desc "Today"          "t" #'org-roam-dailies-find-today
-          :desc "Tomorrow"       "m" #'org-roam-dailies-find-tomorrow
-          :desc "Yesterday"      "y" #'org-roam-dailies-find-yesterday)))
-       (:when (modulep! :lang org +roam2)
+       (:when (or (modulep! :lang org +roam)
+                  (modulep! :lang org +roam2))
         (:prefix ("r" . "roam")
          :desc "Open random node"           "a" #'org-roam-node-random
          :desc "Find node"                  "f" #'org-roam-node-find
@@ -242,6 +234,10 @@
        (:when (modulep! :ui treemacs)
         :desc "Project sidebar"               "p" #'+treemacs/toggle
         :desc "Find file in project rsidebar" "P" #'treemacs-find-file)
+       (:when (modulep! :emacs dired +dirvish)
+        :desc "Open directory in dirvish"     "/" #'dirvish
+        :desc "Project sidebar"               "p" #'dirvish-side
+        :desc "Find file in project sidebar"  "P" #'+dired/dirvish-side-and-follow)
        (:when (modulep! :term shell)
         :desc "Toggle shell popup"            "t" #'+shell/toggle
         :desc "Open shell here"               "T" #'+shell/here)
@@ -257,14 +253,26 @@
        (:when (modulep! :os macos)
         :desc "Reveal in Finder"           "o" #'+macos/reveal-in-finder
         :desc "Reveal project in Finder"   "O" #'+macos/reveal-project-in-finder
-        :desc "Send to Transmit"           "u" #'+macos/send-to-transmit
-        :desc "Send project to Transmit"   "U" #'+macos/send-project-to-transmit
-        :desc "Send to Launchbar"          "l" #'+macos/send-to-launchbar
-        :desc "Send project to Launchbar"  "L" #'+macos/send-project-to-launchbar
-        :desc "Open in iTerm"              "i" #'+macos/open-in-iterm
-        :desc "Open in new iTerm window"   "I" #'+macos/open-in-iterm-new-window)
+        (:prefix ("s" . "send to application")
+         :desc "Send to Transmit"           "t" #'+macos/send-to-transmit
+         :desc "Send project to Transmit"   "T" #'+macos/send-project-to-transmit
+         :desc "Send to Launchbar"          "l" #'+macos/send-to-launchbar
+         :desc "Send project to Launchbar"  "L" #'+macos/send-project-to-launchbar
+         :desc "Open in iTerm"              "i" #'+macos/open-in-iterm
+         :desc "Open in new iTerm window"   "I" #'+macos/open-in-iterm-new-window))
        (:when (modulep! :tools docker)
         :desc "Docker" "D" #'docker)
+       (:when (modulep! :tools llm)
+        (:prefix ("l" . "llm")
+         :desc "Add text to context"        "a" #'gptel-add
+         :desc "Explain"                    "e" #'gptel-quick
+         :desc "Add file to context"        "f" #'gptel-add-file
+         :desc "Open gptel"                 "l" #'gptel
+         :desc "Send to gptel"              "s" #'gptel-send
+         :desc "Open gptel menu"            "m" #'gptel-menu
+         :desc "Rewrite"                    "r" #'gptel-rewrite
+         :desc "Org: set topic"             "o" #'gptel-org-set-topic
+         :desc "Org: set properties"        "O" #'gptel-org-set-properties))
        (:when (modulep! :email mu4e)
         :desc "mu4e" "m" #'=mu4e)
        (:when (modulep! :email notmuch)
@@ -278,13 +286,8 @@
        :desc "Search project for symbol"   "." #'+default/search-project-for-symbol-at-point
        :desc "Find file in other project"  "F" #'doom/find-file-in-other-project
        :desc "Search project"              "s" #'+default/search-project
-       :desc "List project todos"          "t" #'magit-todos-list
-       :desc "Open project scratch buffer" "x" #'doom/open-project-scratch-buffer
+       :desc "Toggle project scratch buffer" "x" #'doom/toggle-project-scratch-buffer
        :desc "Switch to project scratch buffer" "X" #'doom/switch-to-project-scratch-buffer
-       (:when (and (modulep! :tools taskrunner)
-                   (or (modulep! :completion ivy)
-                       (modulep! :completion helm)))
-        :desc "List project tasks"         "z" #'+taskrunner/project-tasks)
        ;; later expanded by projectile
        (:prefix ("4" . "in other window"))
        (:prefix ("5" . "in other frame")))
@@ -295,14 +298,13 @@
        :desc "Delete frame"                 "f" #'delete-frame
        :desc "Clear current frame"          "F" #'doom/kill-all-buffers
        :desc "Kill Emacs (and daemon)"      "K" #'save-buffers-kill-emacs
-       :desc "Quit Emacs"                   "q" #'kill-emacs
-       :desc "Save and quit Emacs"          "Q" #'save-buffers-kill-terminal
+       :desc "Quit Emacs"                   "q" #'save-buffers-kill-terminal
+       :desc "Quit Emacs without saving"    "Q" #'kill-emacs
        :desc "Quick save current session"   "s" #'doom/quicksave-session
        :desc "Restore last session"         "l" #'doom/quickload-session
        :desc "Save session to file"         "S" #'doom/save-session
        :desc "Restore session from file"    "L" #'doom/load-session
-       :desc "Restart & restore Emacs"      "r" #'doom/restart-and-restore
-       :desc "Restart Emacs"                "R" #'doom/restart)
+       :desc "Restart Emacs"                "r" #'doom/restart)
 
       ;;; <leader> & --- snippets
       (:prefix-map ("&" . "snippets")
@@ -325,21 +327,19 @@
        :desc "Soft line wrapping"           "w" #'visual-line-mode
        (:when (modulep! :editor word-wrap)
         :desc "Soft line wrapping"          "w" #'+word-wrap-mode)
-       (:when (modulep! :checkers syntax)
+       (:when (modulep! :checkers syntax -flymake)
         :desc "Flycheck"                   "f" #'flycheck-mode)
        (:when (modulep! :ui indent-guides)
-        :desc "Indent guides"              "i" #'highlight-indent-guides-mode)
+        :desc "Indent guides"              "i" #'indent-bars-mode)
        (:when (modulep! :ui minimap)
-        :desc "Minimap mode"               "m" #'minimap-mode)
+        :desc "Minimap mode"               "m" #'demap-toggle)
        (:when (modulep! :lang org +present)
         :desc "org-tree-slide mode"        "p" #'org-tree-slide-mode)
        :desc "Read-only mode"               "r" #'read-only-mode
-       (:when (and (modulep! :checkers spell) (not (modulep! :checkers spell +flyspell)))
+       (:when (modulep! :checkers spell -flyspell)
         :desc "Spell checker"              "s" #'spell-fu-mode)
        (:when (modulep! :checkers spell +flyspell)
         :desc "Spell checker"              "s" #'flyspell-mode)
-       (:when (modulep! :lang org +pomodoro)
-        :desc "Pomodoro timer"             "t" #'org-pomodoro)
        (:when (modulep! :ui zen)
         :desc "Zen mode"                   "z" #'+zen/toggle
         :desc "Zen mode (fullscreen)"      "Z" #'+zen/toggle-fullscreen))
@@ -406,7 +406,8 @@
         :desc "Rename workspace"             "r" #'+workspace/rename
         :desc "Create workspace"             "c" #'+workspace/new
         :desc "Create named workspace"       "C" #'+workspace/new-named
-        :desc "Delete workspace"             "k" #'+workspace/delete
+        :desc "Delete workspace"             "k" #'+workspace/kill
+        :desc "Delete saved workspace"       "K" #'+workspace/delete
         :desc "Save workspace"               "S" #'+workspace/save
         :desc "Switch to other workspace"    "o" #'+workspace/other
         :desc "Switch to left workspace"     "p" #'+workspace/switch-left
@@ -463,15 +464,7 @@
         (:when (modulep! :completion ivy)
          :desc "Jump to channel"  "j" #'+irc/ivy-jump-to-channel)
         (:when (modulep! :completion vertico)
-         :desc "Jump to channel"  "j" #'+irc/vertico-jump-to-channel)))
-
-      ;;; <leader> T --- twitter
-      (:when (modulep! :app twitter)
-       (:prefix-map ("T" . "twitter")
-        :desc "Open twitter app" "T" #'=twitter
-        :desc "Quit twitter"     "q" #'+twitter/quit
-        :desc "Rerender twits"   "r" #'+twitter/rerender-all
-        :desc "Ace link"         "l" #'+twitter/ace-link)))
+         :desc "Jump to channel"  "j" #'+irc/vertico-jump-to-channel))))
 
 
 ;;
@@ -505,9 +498,10 @@
       "C-x C-b"     #'ibuffer
       "C-x K"       #'doom/kill-this-buffer-in-all-windows
 
-      ;;; company-mode
-      "C-;" #'+company/complete
-      (:after company
+      ;;; completion (in-buffer)
+      (:when (modulep! :completion company)
+       "C-;" #'+company/complete
+       (:after company
         :map company-active-map
         "C-o"        #'company-search-kill-others
         "C-n"        #'company-select-next
@@ -528,12 +522,7 @@
         :map company-search-map
         "C-n"        #'company-search-repeat-forward
         "C-p"        #'company-search-repeat-backward
-        "C-s"        (cmd! (company-search-abort) (company-filter-candidates)))
-
-      ;;; ein notebooks
-      (:after ein:notebook-multilang
-        :map ein:notebook-multilang-mode-map
-        "C-c h" #'+ein/hydra/body)
+        "C-s"        (cmd! (company-search-abort) (company-filter-candidates))))
 
       ;;; expand-region
       "C-="  #'er/expand-region
@@ -553,9 +542,6 @@
         "<" #'help-go-back
         "n" #'forward-button
         "p" #'backward-button)
-      (:after helpful
-        :map helpful-mode-map
-        "o" #'link-hint-open-link)
       (:after apropos
         :map apropos-mode-map
         "o" #'link-hint-open-link

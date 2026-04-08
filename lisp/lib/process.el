@@ -18,11 +18,11 @@ code of the process and OUTPUT is its stdout output."
   "Execute COMMAND with ARGS synchronously.
 
 Unlike `doom-call-process', this pipes output to `standard-output' on the fly to
-simulate 'exec' in the shell, so batch scripts could run external programs
+simulate \\='exec' in the shell, so batch scripts could run external programs
 synchronously without sacrificing their output.
 
 Warning: freezes indefinitely on any stdin prompt."
-  ;; FIXME Is there any way to handle prompts?
+  ;; FIXME: Is there any way to handle prompts?
   (with-temp-buffer
     (cons (let ((process
                  (make-process :name "doom-sh"

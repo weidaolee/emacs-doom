@@ -18,6 +18,9 @@ functions allow images to be built easily.
 ** Module flags
 - +lsp ::
   Enable integration for the Dockerfile Language Server.
+- +tree-sitter ::
+  Leverages tree-sitter for better syntax highlighting and structural text
+  editing. Requires Emacs 29.1+ and [[doom-module::tools tree-sitter]].
 
 ** Packages
 - [[doom-package:docker]]
@@ -40,10 +43,11 @@ installed and accessible from your PATH.
 Optionally, this module also uses the following programs:
 - =docker-langserver= (for LSP users): ~$ npm install -g
   dockerfile-language-server-nodejs~
+- =dockfmt= for [[doom-module::editor format]]: https://github.com/jessfraz/dockfmt#installation
 
 * TODO Usage
 #+begin_quote
- 🔨 /This module's usage documentation is incomplete./ [[doom-contrib-module:][Complete it?]]
+ 󱌣 /This module's usage documentation is incomplete./ [[doom-contrib-module:][Complete it?]]
 #+end_quote
 
 ** Docker control
@@ -87,21 +91,15 @@ C-x C-f /docker:$USER@$CONTAINER:/path/to/file
 
 * TODO Configuration
 #+begin_quote
- 🔨 /This module's configuration documentation is incomplete./ [[doom-contrib-module:][Complete it?]]
+ 󱌣 /This module's configuration documentation is incomplete./ [[doom-contrib-module:][Complete it?]]
 #+end_quote
 
 ** Popups
 Thanks to [[https://github.com/magit/magit-popup][magit-popup]], all the popups default arguments can be customized. For
 example, here is how to customize the arguments for =docker-image-run-popup=:
 #+begin_src emacs-lisp
-(setq docker-image-run-arguments '("-i" "-t" "--rm"))
-#+end_src
-
-or inside a =use-package= declaration:
-#+begin_src emacs-lisp
-(use-package! docker
-  :bind ("C-c d" . docker)
-  :custom (docker-image-run-arguments '("-i" "-t" "--rm")))
+(with-eval-after-load 'docker
+  (setq docker-image-run-arguments '("-i" "-t" "--rm")))
 #+end_src
 
 *** Other useful variables
@@ -135,7 +133,7 @@ For older versions of TRAMP you can dump [[https://github.com/emacs-pe/docker-tr
 ~load-path~ somewhere and add the following to =$DOOMDIR/config.el= to overwrite
 ~tramp-wait-for-output~ with the patch applied:
 #+begin_src emacs-lisp
-(after! tramp
+(with-eval-after-load 'tramp
   (require 'docker-tramp-compat))
 #+end_src
 
@@ -144,5 +142,5 @@ For older versions of TRAMP you can dump [[https://github.com/emacs-pe/docker-tr
 
 * TODO Appendix
 #+begin_quote
- 🔨 This module has no appendix yet. [[doom-contrib-module:][Write one?]]
+ 󱌣 This module has no appendix yet. [[doom-contrib-module:][Write one?]]
 #+end_quote

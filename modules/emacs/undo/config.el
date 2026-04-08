@@ -5,9 +5,9 @@
   :hook (doom-first-buffer . undo-fu-mode)
   :config
   ;; Increase undo history limits to reduce likelihood of data loss
-  (setq undo-limit 400000           ; 400kb (default is 160kb)
-        undo-strong-limit 3000000   ; 3mb   (default is 240kb)
-        undo-outer-limit 48000000)  ; 48mb  (default is 24mb)
+  (setq undo-limit 256000           ; 256kb (default is 160kb)
+        undo-strong-limit 2000000   ; 2mb   (default is 240kb)
+        undo-outer-limit 36000000)  ; 36mb  (default is 24mb)
 
   (define-minor-mode undo-fu-mode
     "Enables `undo-fu' for the current session."
@@ -27,7 +27,7 @@
 (use-package! undo-fu-session
   :unless (modulep! +tree)
   :hook (undo-fu-mode . global-undo-fu-session-mode)
-  :custom (undo-fu-session-directory (concat doom-cache-dir "undo-fu-session/"))
+  :custom (undo-fu-session-directory (file-name-concat doom-profile-cache-dir "undo-fu-session/"))
   :config
   (setq undo-fu-session-incompatible-files '("\\.gpg$" "/COMMIT_EDITMSG\\'" "/git-rebase-todo\\'"))
 
@@ -36,11 +36,11 @@
     ;; is our priority within Emacs
     (setq undo-fu-session-compression 'zst))
 
-  ;; HACK Fix #4993: we've advised `make-backup-file-name-1' to produced SHA1'ed
-  ;;      filenames to prevent file paths that are too long, so we force
-  ;;      `undo-fu-session--make-file-name' to use it instead of its own
-  ;;      home-grown overly-long-filename generator.
-  ;; TODO PR this upstream; should be a universal issue
+  ;; HACK: Fix #4993: we've advised `make-backup-file-name-1' to produced
+  ;;   SHA1'ed filenames to prevent file paths that are too long, so we force
+  ;;   `undo-fu-session--make-file-name' to use it instead of its own home-grown
+  ;;   overly-long-filename generator.
+  ;; TODO: PR this upstream; should be a universal issue
   (defadvice! +undo-fu-make-hashed-session-file-name-a (file)
     :override #'undo-fu-session--make-file-name
     (concat (let ((backup-directory-alist `(("." . ,undo-fu-session-directory))))
@@ -48,11 +48,21 @@
             (undo-fu-session--file-name-ext))))
 
 
+(use-package! vundo
+  :unless (modulep! +tree)
+  :when (> emacs-major-version 27)
+  :defer t
+  :config
+  (setq vundo-glyph-alist vundo-unicode-symbols
+        vundo-compact-display t)
+  (define-key vundo-mode-map [remap doom/escape] #'vundo-quit))
+
+
 (use-package! undo-tree
   :when (modulep! +tree)
   ;; Branching & persistent undo
   :hook (doom-first-buffer . global-undo-tree-mode)
-  :custom (undo-tree-history-directory-alist `(("." . ,(concat doom-cache-dir "undo-tree-hist/"))))
+  :custom (undo-tree-history-directory-alist `(("." . ,(file-name-concat doom-profile-cache-dir "undo-tree-hist/"))))
   :config
   (setq undo-tree-visualizer-diff t
         undo-tree-auto-save-history t
@@ -90,4 +100,27 @@
   ;; Undo-tree is too chatty about saving its history files. This doesn't
   ;; totally suppress it logging to *Messages*, it only stops it from appearing
   ;; in the echo-area.
-  (advice-add #'undo-tree-save-history :around #'doom-shut-up-a))
+  (advice-add #'undo-tree-save-history :around #'doom-shut-up-a)
+
+  ;; HACK: If undo-tree creates its diff window next to a popup/side window, the
+  ;;   `balance-window' calls in `undo-tree-visualizer-update-diff' can wreck
+  ;;   havoc on the window tree, making the diff window an unclosable "root"
+  ;;   window (which emacs will happily throw errors about when you call
+  ;;   `undo-tree-visualizer-quit'). Breakage ensues.
+  ;; REVIEW: Should be reported/addressed upstream, in undo-tree!
+  (defadvice! +undo-tree--show-visualizer-diff-safely-a (&optional node)
+    :override #'undo-tree-visualizer-show-diff
+    (setq undo-tree-visualizer-diff t)
+    (let ((buff (with-current-buffer undo-tree-visualizer-parent-buffer
+                  (undo-tree-diff node)))
+          (display-buffer-mark-dedicated 'soft)
+          (win (split-window (get-buffer-window undo-tree-visualizer-parent-buffer))))
+      (with-current-buffer buff
+        (hide-mode-line-mode +1))
+      (set-window-buffer win buff)
+      (shrink-window-if-larger-than-buffer win)))
+
+  (defadvice! +undo-tree--suppress-balance-windows-a (fn &rest args)
+    :around #'undo-tree-visualizer-update-diff
+    (letf! ((#'balance-windows #'ignore))
+      (apply fn args))))

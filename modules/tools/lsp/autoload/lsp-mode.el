@@ -1,11 +1,11 @@
 ;;; tools/lsp/autoload/lsp-mode.el -*- lexical-binding: t; -*-
-;;;###if (not (modulep! +eglot))
+;;;###if (modulep! -eglot)
 
 ;;;###autodef
 (defun set-lsp-priority! (client priority)
   "Change the PRIORITY of lsp CLIENT."
   (require 'lsp-mode)
-  (if-let (client (gethash client lsp-clients))
+  (if-let* ((client (gethash client lsp-clients)))
       (setf (lsp--client-priority client)
             priority)
     (error "No LSP client named %S" client)))
@@ -56,8 +56,8 @@
 (defun +lsp-lookup-definition-handler ()
   "Find definition of the symbol at point using LSP."
   (interactive)
-  (when-let (loc (lsp-request "textDocument/definition"
-                              (lsp--text-document-position-params)))
+  (when-let* ((loc (lsp-request "textDocument/definition"
+                                (lsp--text-document-position-params))))
     (lsp-show-xrefs (lsp--locations-to-xref-items loc) nil nil)
     'deferred))
 
@@ -65,11 +65,11 @@
 (defun +lsp-lookup-references-handler (&optional include-declaration)
   "Find project-wide references of the symbol at point using LSP."
   (interactive "P")
-  (when-let
-      (loc (lsp-request "textDocument/references"
-                        (append (lsp--text-document-position-params)
-                                (list
-                                 :context `(:includeDeclaration
-                                            ,(lsp-json-bool include-declaration))))))
+  (when-let*
+      ((loc (lsp-request "textDocument/references"
+                         (append (lsp--text-document-position-params)
+                                 (list
+                                  :context `(:includeDeclaration
+                                             ,(lsp-json-bool include-declaration)))))))
     (lsp-show-xrefs (lsp--locations-to-xref-items loc) nil t)
     'deferred))

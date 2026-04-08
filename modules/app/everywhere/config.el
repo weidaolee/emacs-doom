@@ -8,7 +8,7 @@
   :config
   (set-yas-minor-mode! 'emacs-everywhere-mode)
 
-  ;; HACK Inhibit MAJOR-MODE-local-vars-hook in emacs-everywhere buffers,
+  ;; HACK: Inhibit MAJOR-MODE-local-vars-hook in emacs-everywhere buffers,
   ;;   because Doom commonly starts servers and other extraneous services on
   ;;   this hook, which will rarely work well in emacs-everywhere's temporary
   ;;   buffers anyway.
@@ -20,7 +20,7 @@
        (doom-modeline-spc)
        (when (emacs-everywhere-markdown-p)
          (concat
-          (all-the-icons-octicon "markdown" :face 'all-the-icons-green :v-adjust 0.02)
+          (nerd-icons-octicon "nf-oct-markdown" :face 'nerd-icons-green :v-adjust 0.02)
           (doom-modeline-spc)))
        (propertize (emacs-everywhere-app-class emacs-everywhere-current-app)
                    'face 'doom-modeline-project-dir)
@@ -32,7 +32,7 @@
     (doom-modeline-def-modeline 'emacs-everywhere
       '(bar modals emacs-everywhere buffer-position
         word-count parrot selection-info)
-      '(input-method major-mode checker
+      '(input-method major-mode check
         #("  " 0 1 ; "Exit to app" icon + a little padding
           (rear-nonsticky t
            display (raise -0.25)

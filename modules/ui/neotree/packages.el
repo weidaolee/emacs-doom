@@ -1,4 +1,4 @@
 ;; -*- no-byte-compile: t; -*-
 ;;; ui/neotree/packages.el
 
-(package! neotree :pin "98fe21334affaffe2334bf7c987edaf1980d2d0b")
+(package! neotree :pin "3178805a0942696d1e5162575d9cab43d14b7970")

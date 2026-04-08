@@ -27,7 +27,9 @@ to your needs.
 * Installation
 [[id:01cffea4-3329-45e2-a892-95a384ab2338][Enable this module in your ~doom!~ block.]]
 
-/This module has no external requirements./
+This module requires the [[https://dejavu-fonts.github.io/][DejaVu Sans]] font be installed and present on your
+system (unless you've changed ~+bidi-hebrew-font~ and ~+bidi-arabic-font~ to a
+different font).
 
 * Usage
 This module provides ~+bidi-mode~, a minor mode that improves the display of RTL
@@ -38,6 +40,18 @@ It also provides easy font configuration for Hebrew and Arabic-derived scripts
 (Arabic, Persian, Urdu, etc.) in ~+bidi-hebrew-font~ and ~+bidi-arabic-font~.
 See [[Fonts]] for more information. If you use an RTL language that isn't covered by
 these characters, open an issue requesting support for it.
+
+To resize fonts, don't include a ~:size~ parameter in ~+bidi-hebrew-font~ or
+~+bidi-arabic-font~, set ~+bidi-hebrew-font-scale~ or ~+bidi-arabic-font-scale~
+instead, or add an entry to ~face-font-rescale-alist~ for your font. E.g.
+#+begin_src emacs-lisp
+;;; Add to $DOOMDIR/config.el
+(setq +bidi-arabic-font-scale 1.5)
+;; or
+(setq +bidi-hebrew-font-scale 2.5)
+;; or
+(add-to-list 'face-font-rescale-alist '("DejaVu Sans" . 1.2))
+#+end_src
 
 * Configuration
 ** Using ~+bidi-mode~
@@ -67,7 +81,7 @@ right-to-left when ~+bidi-mode~ is on, add the following to your config:
 #+end_src
 
 #+begin_quote
- 🚧 Do not do this if you are using ~+bidi-global-mode~, it will mess up all of
+  Do not do this if you are using ~+bidi-global-mode~, it will mess up all of
     the buffers in Emacs that use English, including things like the =M-x=
     buffer.
 #+end_quote
@@ -95,7 +109,7 @@ Hebrew and Arabic characters. They are set by default to =DejaVu Sans=, since it
 has decent looking Hebrew and Arabic character support.
 
 #+begin_quote
- 📌 If you are writing in an Arabic-derived script, such as Persian, Urdu, or
+ 󰐃 If you are writing in an Arabic-derived script, such as Persian, Urdu, or
     Pashto, you may want to change ~+bidi-arabic-font~ to one specific to your
     language, especially if you want your script to be written in the Nastaliq
     style.
@@ -145,5 +159,5 @@ If Emacs is having trouble properly displaying a Nastaliq font, try using one of
 
 * TODO Appendix
 #+begin_quote
- 🔨 This module has no appendix yet. [[doom-contrib-module:][Write one?]]
+ 󱌣 This module has no appendix yet. [[doom-contrib-module:][Write one?]]
 #+end_quote

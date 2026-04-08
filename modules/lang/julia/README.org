@@ -15,22 +15,28 @@ This module adds support for [[https://julialang.org/][the Julia language]] to D
 
 ** Module flags
 - +lsp ::
-  Enable LSP support for ~julia-mode~. Requires [[doom-module::tools lsp]] and a langserver
-  (supports LanguageServer.jl).
+  Enable LSP support for ~julia-mode~. Requires [[doom-module::tools lsp]] and a
+  langserver (supports LanguageServer.jl).
 - +tree-sitter ::
   Leverages tree-sitter for better syntax highlighting and structural text
   editing. Requires [[doom-module::tools tree-sitter]].
+- +snail ::
+  Use Snail, a development environment and REPL interaction package for Julia in
+  the spirit of Common Lisp’s SLIME and Clojure’s CIDER. It enables convenient
+  and dynamic REPL-driven development.
 
 ** Packages
 - [[doom-package:julia-mode]]
 - [[doom-package:julia-repl]]
-- if [[doom-package:+lsp]]
+- if [[doom-module:+lsp]]
   - if [[doom-module::tools lsp]]
     - [[doom-package:lsp-julia]]
     - [[doom-package:lsp]]
   - if [[doom-module::tools lsp +eglot]]
     - [[doom-package:eglot-jl]]
     - [[doom-package:eglot]]
+- if [[doom-module:+snail]]
+  - [[doom-package:julia-snail]]
 
 ** Hacks
 /No hacks documented for this module./
@@ -58,8 +64,8 @@ Pkg.add("LanguageServer")
 Pkg.add("SymbolServer")
 #+end_src
 
-Then configure [[doom-package:lsp-julia]] or [[doom-package:eglot-jl]] depending on whether you have enabled
-[[doom-module::tools lsp]] or [[doom-module::tools lsp +eglot]], respectively:
+Then configure [[doom-package:lsp-julia]] or [[doom-package:eglot-jl]] depending on whether you have enabled [[doom-module::tools
+lsp]] or [[doom-module::tools lsp +eglot]], respectively:
 
 *** =lsp-julia=
 To instruct [[doom-package:lsp-julia]] not to use the built-in package:
@@ -73,7 +79,7 @@ environment in which it is installed. This is set to v1.6 by default as it is
 the current LTS:
 #+begin_src emacs-lisp
 ;; in $DOOMDIR/config.el
-(after! lsp-julia
+(with-eval-after-load 'lsp-julia
   (setq lsp-julia-default-environment "~/.julia/environments/v1.6"))
 #+end_src
 
@@ -90,13 +96,13 @@ But to let [[doom-package:eglot-jl]] use the environment bundled with it, set it
 ~eglot-jl-base~ instead:
 #+begin_src emacs-lisp
 ;; in $DOOMDIR/config.el
-(after! eglot-jl
+(with-eval-after-load 'eglot-jl
   (setq eglot-jl-language-server-project eglot-jl-base))
 #+end_src
 
 * TODO Usage
 #+begin_quote
- 🔨 /This module's usage documentation is incomplete./ [[doom-contrib-module:][Complete it?]]
+ 󱌣 /This module's usage documentation is incomplete./ [[doom-contrib-module:][Complete it?]]
 #+end_quote
 
 ** Language Server
@@ -104,9 +110,22 @@ But to let [[doom-package:eglot-jl]] use the environment bundled with it, set it
 [[doom-package:eglot]] features. It requires ~LanguageServer.jl~, the installation of which is
 described above.
 
+** Snail
+
+| Keybind                     | Command                           |
+|-----------------------------+-----------------------------------|
+| [[kbd:][<localleader> ']]   | ~julia-snail~                     |
+| [[kbd:][<localleader> a]]   | ~julia-snail-package-activate~    |
+| [[kbd:][<localleader> r]]   | ~julia-snail-update-module-cache~ |
+| [[kbd:][<localleader> d]]   | ~julia-snail-doc-lookup~          |
+| [[kbd:][<localleader> e b]] | ~julia-snail-send-buffer-file~    |
+| [[kbd:][<localleader> e l]] | ~julia-snail-send-line~           |
+| [[kbd:][<localleader> e r]] | ~julia-snail-send-region~         |
+| [[kbd:][<localleader> e e]] | ~julia-snail-send-dwim~           |
+
 * TODO Configuration
 #+begin_quote
- 🔨 /This module's configuration documentation is incomplete./ [[doom-contrib-module:][Complete it?]]
+ 󱌣 /This module's configuration documentation is incomplete./ [[doom-contrib-module:][Complete it?]]
 #+end_quote
 
 ** Change the default environment for the Julia language server
@@ -114,7 +133,7 @@ described above.
 v1.6 by default as it is the current LTS:
 #+begin_src emacs-lisp
 ;; in $DOOMDIR/config.el
-(after! lsp-julia
+(with-eval-after-load 'lsp-julia
   (setq lsp-julia-default-environment "~/.julia/environments/v1.6"))
 #+end_src
 
@@ -126,5 +145,5 @@ v1.6 by default as it is the current LTS:
 
 * TODO Appendix
 #+begin_quote
- 🔨 This module has no appendix yet. [[doom-contrib-module:][Write one?]]
+ 󱌣 This module has no appendix yet. [[doom-contrib-module:][Write one?]]
 #+end_quote

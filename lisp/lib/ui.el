@@ -19,7 +19,12 @@ If FORCE-P is omitted when `window-size-fixed' is non-nil, resizing will fail."
 Returns t if it is safe to kill this session. Does not prompt if no real buffers
 are open."
   (or (not (ignore-errors (doom-real-buffer-list)))
-      (yes-or-no-p (format "%s" (or prompt "Really quit Emacs?")))
+      (if use-dialog-box
+          (x-popup-dialog
+           t `("Really quit Emacs?"
+               ("Yes" . t)
+               ("Cancel" . nil)))
+        (yes-or-no-p (format "%s" (or prompt "Really quit Emacs?"))))
       (ignore (message "Aborted"))))
 
 
@@ -75,6 +80,20 @@ In tty Emacs, messages are suppressed completely."
 (defun doom-disable-line-numbers-h ()
   (display-line-numbers-mode -1))
 
+;;;###autoload
+(defun doom-kill-childframes-h (&rest _)
+  "Delete all childframes (and `posframe' frames)."
+  (dolist (frame (frame-list))
+    (when (or (frame-parameter frame 'posframe-buffer)
+              (frame-parameter nil 'parent-frame))
+      (let (delete-frame-functions)
+        (delete-frame frame))))
+  (when (featurep 'posframe)
+    (dolist (buffer (buffer-list))
+      (with-current-buffer buffer
+        (when posframe--frame
+          (posframe--kill-buffer buffer))))))
+
 
 ;;
 ;;; Commands
@@ -120,21 +139,21 @@ See `display-line-numbers' for what these values mean."
   (remove-hook 'doom-switch-window-hook #'doom--enlargened-forget-last-wconf-h))
 
 ;;;###autoload
-(defun doom/window-maximize-buffer (&optional arg)
+(defun doom/window-maximize-buffer ()
   "Close other windows to focus on this one.
 Use `winner-undo' to undo this. Alternatively, use `doom/window-enlargen'."
-  (interactive "P")
+  (interactive)
   (when (and (bound-and-true-p +popup-mode)
              (+popup-window-p))
     (+popup/raise (selected-window)))
   (delete-other-windows))
 
 ;;;###autoload
-(defun doom/window-enlargen (&optional arg)
+(defun doom/window-enlargen ()
   "Enlargen the current window (i.e. shrinks others) so you can focus on it.
 Use `winner-undo' to undo this. Alternatively, use
 `doom/window-maximize-buffer'."
-  (interactive "P")
+  (interactive)
   (let* ((window (selected-window))
          (dedicated-p (window-dedicated-p window))
          (preserved-p (window-parameter window 'window-preserved-size))
@@ -171,15 +190,30 @@ Use `winner-undo' to undo this. Alternatively, use
     (while (ignore-errors (windmove-down)) (delete-window))))
 
 ;;;###autoload
-(defun doom/set-frame-opacity (opacity)
+(defun doom/set-frame-opacity (opacity &optional frames)
   "Interactively change the current frame's opacity.
 
-OPACITY is an integer between 0 to 100, inclusive."
+OPACITY is an integer between 0 to 100, inclusive. FRAMES is a list of frames to
+apply the change to or `t' (meaning all open and future frames). If called
+interactively, FRAMES defaults to the current frame (or `t' with the prefix
+arg)."
   (interactive
-   (list (read-number "Opacity (0-100): "
-                      (or (frame-parameter nil 'alpha)
-                          100))))
-  (set-frame-parameter nil 'alpha opacity))
+   (list 'interactive (if current-prefix-arg t (list (selected-frame)))))
+  (let* ((parameter
+          (if (eq window-system 'pgtk)
+              'alpha-background
+            'alpha))
+         (opacity
+          (if (eq opacity 'interactive)
+              (read-number "Opacity (0-100): "
+                           (or (frame-parameter nil parameter)
+                               100))
+            opacity))
+         (alist `((,parameter . ,opacity))))
+    (if (eq frames t)
+        (modify-all-frames-parameters alist)
+      (dolist (frame frames)
+        (modify-frame-parameters frame alist)))))
 
 (defvar doom--narrowed-base-buffer nil)
 ;;;###autoload
@@ -191,12 +225,9 @@ narrowing doesn't affect other windows displaying the same buffer. Call
 `doom/widen-indirectly-narrowed-buffer' to undo it (incrementally).
 
 Inspired from http://demonastery.org/2013/04/emacs-evil-narrow-region/"
-  (interactive
-   (list (or (bound-and-true-p evil-visual-beginning) (region-beginning))
-         (or (bound-and-true-p evil-visual-end)       (region-end))))
-  (unless (region-active-p)
-    (setq beg (line-beginning-position)
-          end (line-end-position)))
+  (interactive (if (region-active-p)
+                   (list (doom-region-beginning) (doom-region-end))
+                 (list (pos-bol) (pos-eol))))
   (deactivate-mark)
   (let ((orig-buffer (current-buffer)))
     (with-current-buffer (switch-to-buffer (clone-indirect-buffer nil nil))
@@ -235,12 +266,12 @@ If the current buffer is not an indirect buffer, it is `widen'ed."
 ;;;###autoload
 (defun doom/toggle-narrow-buffer (beg end)
   "Narrow the buffer to BEG END. If narrowed, widen it."
-  (interactive
-   (list (or (bound-and-true-p evil-visual-beginning) (region-beginning))
-         (or (bound-and-true-p evil-visual-end)       (region-end))))
+  (interactive (if (region-active-p)
+                   (list (doom-region-beginning) (doom-region-end))
+                 (list (pos-bol) (pos-eol))))
   (if (buffer-narrowed-p)
       (widen)
-    (unless (region-active-p)
-      (setq beg (line-beginning-position)
-            end (line-end-position)))
     (narrow-to-region beg end)))
+
+(provide 'doom-lib '(ui))
+;;; ui.el ends here

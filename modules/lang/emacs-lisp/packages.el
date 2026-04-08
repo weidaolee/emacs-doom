@@ -7,13 +7,15 @@
 (package! highlight-quoted :pin "24103478158cd19fbcfb4339a3f1fa1f054f1469")
 
 ;; Tools
-(package! macrostep :pin "75ecd041219239f0dceab4883594ea2fe366b484")
-(package! overseer :pin "02d49f582e80e36b4334c9187801c5ecfb027789")
-(package! elisp-def :pin "1d2e88a232ec16bce036b49577c4d4d96035f9f7")
-(package! elisp-demos :pin "792be709c82101aea0585ece7429e2fdded74494")
-(when (modulep! :checkers syntax)
-  (package! flycheck-package :pin "3a6aaed29ff61418c48c0251e1432c30748ae739")
-  (package! flycheck-cask :pin "4b2ede6362ded4a45678dfbef1876faa42edbd58"))
+(package! helpful :pin "03756fa6ad4dcca5e0920622b1ee3f70abfc4e39")
+(package! macrostep :pin "d0928626b4711dcf9f8f90439d23701118724199")
+(package! overseer :pin "7fdcf1a6fba6b1569a09c1666b4e51bcde266ed9")
+(package! elisp-def :pin "2451ed6594807448a24a63c51c917727713ed19d")
+(package! elisp-demos :pin "1a108d1c5011f9ced58be2ca98bea1fbd4130a2f")
+(when (modulep! :checkers syntax -flymake)
+  (package! flycheck-package :pin "a52e4e95f3151898b36739dfdb4a98b368626fc0"))
+(when (modulep! :checkers syntax +flymake)
+  (package! package-lint-flymake :pin "1c37329703a507fa357302cf6fc29d4f2fe631a8"))
 
 ;; Libraries
-(package! buttercup :pin "07a52c99695845a0089e828d43da154c0ba0c178")
+(package! buttercup :pin "cc5a2ab7c7f18aaaf525fac61fe59bae5ad018dd")

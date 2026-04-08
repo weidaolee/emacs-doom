@@ -8,7 +8,7 @@ falling back on searching your PATH."
   (if (file-name-absolute-p exe)
       (and (file-executable-p exe)
            exe)
-    (let ((exe-root (format "bin/%s" exe)))
+    (let ((exe-root (format (if (featurep :system 'windows) "Scripts/%s" "bin/%s") exe)))
       (cond ((when python-shell-virtualenv-root
                (let ((bin (expand-file-name exe-root python-shell-virtualenv-root)))
                  (if (file-exists-p bin) bin))))
@@ -16,8 +16,8 @@ falling back on searching your PATH."
                (let ((bin (expand-file-name (concat conda-env-current-name "/" exe-root)
                                             (conda-env-default-location))))
                  (if (file-executable-p bin) bin))))
-            ((when-let (bin (projectile-locate-dominating-file default-directory "bin/python"))
-               (setq-local doom-modeline-python-executable (expand-file-name "bin/python" bin))))
+            ((when-let* ((bin (projectile-locate-dominating-file default-directory exe-root)))
+               (setq-local doom-modeline-python-executable (expand-file-name exe-root bin))))
             ((executable-find exe))))))
 
 ;;;###autoload
@@ -65,10 +65,3 @@ falling back on searching your PATH."
         (python-shell-interpreter-args
          (string-join (cdr +python-jupyter-command) " ")))
     (+python/open-repl)))
-
-;;;###autoload
-(defun +python/optimize-imports ()
-  "organize imports"
-  (interactive)
-  (pyimport-remove-unused)
-  (py-isort-buffer))

@@ -218,7 +218,7 @@ Emacs):
 #+end_src
 
 #+begin_quote
- 📌 ~+lookup/in-docsets~ consults ~dash-docs-browser-func~ instead, which is
+ 󰐃 ~+lookup/in-docsets~ consults ~dash-docs-browser-func~ instead, which is
     already set to ~#'eww~ by default.
 #+end_quote
 
@@ -229,7 +229,7 @@ instead of your system browser, set ~+lookup-open-url-fn~ and/or
 with Xwidgets support):
 #+begin_src emacs-lisp
 (setq +lookup-open-url-fn #'+lookup-xwidget-webkit-open-url-fn)
-(after! dash-docs
+(with-eval-after-load 'dash-docs
   (setq dash-docs-browser-func #'+lookup-xwidget-webkit-open-url-fn))
 #+end_src
 
@@ -241,7 +241,7 @@ with Xwidgets support):
 
 * TODO Appendix
 #+begin_quote
- 🔨 /This module's appendix is incomplete./ [[doom-contrib-module:][Write more?]]
+ 󱌣 /This module's appendix is incomplete./ [[doom-contrib-module:][Write more?]]
 #+end_quote
 
 ** Commands

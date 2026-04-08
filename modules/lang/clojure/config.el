@@ -1,54 +1,116 @@
 ;;; lang/clojure/config.el -*- lexical-binding: t; -*-
 
 (after! projectile
-  (pushnew! projectile-project-root-files "project.clj" "build.boot" "deps.edn"))
-
-;; Large clojure buffers tend to be slower than large buffers of other modes, so
-;; it should have a lower threshold too.
-(add-to-list 'doom-large-file-size-alist '("\\.\\(?:clj[sc]?\\|dtm\\|edn\\)\\'" . 0.5))
+  (add-to-list 'projectile-project-root-files "deps.edn")
+  (add-to-list 'projectile-project-root-files "build.boot")
+  (add-to-list 'projectile-project-root-files "project.clj"))
 
 (defvar +clojure-load-clj-refactor-with-lsp nil
   "Whether or not to include clj-refactor along with clojure-lsp.")
 
+
 ;;
 ;;; Packages
 
-(use-package! clojure-mode
-  :hook (clojure-mode . rainbow-delimiters-mode)
-  :config
+(defun +clojure-common-config (modes)
+  (set-formatter! 'cljfmt '("cljfmt" "fix" "-") :modes modes)
+
   (when (modulep! +lsp)
-    (add-hook! '(clojure-mode-local-vars-hook
-                 clojurec-mode-local-vars-hook
-                 clojurescript-mode-local-vars-hook)
-               :append
-               (defun +clojure-disable-lsp-indentation-h ()
-                 (setq-local lsp-enable-indentation nil))
-               #'lsp!)
-    (after! lsp-clojure
-      (dolist (m '(clojure-mode
-                   clojurec-mode
-                   clojurescript-mode
-                   clojurex-mode))
-        (add-to-list 'lsp-language-id-configuration (cons m "clojure")))))
+    (dolist (m modes)
+      (let ((hook (intern (format "%s-local-vars-hook" m))))
+        (add-hook hook #'+clojure-disable-lsp-indentation-h 'append)
+        (add-hook hook #'lsp! 'append))))
 
-  (when (modulep! +tree-sitter)
-    (add-hook! '(clojure-mode-local-vars-hook
-                 clojurec-mode-local-vars-hook
-                 clojurescript-mode-local-vars-hook)
-               :append
-               #'tree-sitter!)))
+  (let ((keymaps
+         (cl-loop for m in modes
+                  collect (intern (format "%s-map" m)))))
+
+    ;;; REVIEW: Uses `use-package!' so `package!'s `:disable' property is
+    ;;;   respected. Will be refactored later.
+    (use-package! neil
+      :defer t
+      :init
+      (map! :map ,keymaps
+            :localleader
+            "f"  #'neil-find-clojure-package))
+
+    (use-package! jet
+      :defer t
+      :init
+      (map! :map ,keymaps
+            :localleader
+            "j" #'jet))))
 
 
-(use-package! cider
-  ;; NOTE if `org-directory' doesn't exist, `cider-jack' in won't work
+
+(defun +clojure-disable-lsp-indentation-h ()
+  (setq-local lsp-enable-indentation nil))
+
+
+(use-package! clojure-mode
+  :defer t
+  :config
+  (+clojure-common-config '(clojure-mode clojurec-mode clojurescript-mode)))
+
+
+(use-package! clojure-ts-mode
+  :when (modulep! +tree-sitter)
+  :when (> emacs-major-version 29)  ; package requires 30.1+
+  :defer t
+  :init
+  (setq clojure-ts-auto-remap nil)  ; we do it ourselves
+  (set-tree-sitter! 'clojure-mode 'clojure-ts-mode
+    '((clojure :url "https://github.com/sogaiu/tree-sitter-clojure")))
+  (set-tree-sitter! 'clojurec-mode 'clojure-ts-clojurec-mode 'clojure)
+  (set-tree-sitter! 'clojuredart-mode 'clojure-ts-clojuredart-mode 'clojure)
+  (set-tree-sitter! 'clojurescript-mode 'clojure-ts-clojurescript-mode 'javascript)
+  (set-tree-sitter! 'jank-mode 'clojure-ts-jank-mode 'cpp)
+  (set-tree-sitter! 'joker-mode 'clojure-ts-joker-mode 'clojure)
+
+  :config
+  (+clojure-common-config '(clojure-ts-mode clojure-ts-clojurec-mode clojure-ts-clojurescript-mode))
+
+  ;; HACK: Rely on `major-mode-remap-defaults' instead (upstream also doesn't
+  ;;   check if the grammars are ready before adding these entries, which will
+  ;;   bork clojure buffers.
+  (cl-callf2 rassq-delete-all 'clojure-ts-clojurescript-mode auto-mode-alist)
+  (cl-callf2 rassq-delete-all 'clojure-ts-clojurec-mode auto-mode-alist)
+  (cl-callf2 rassq-delete-all 'clojure-ts-clojuredart-mode auto-mode-alist)
+  (cl-callf2 rassq-delete-all 'clojure-ts-jank-mode auto-mode-alist)
+  (cl-callf2 rassq-delete-all 'clojure-ts-joker-mode auto-mode-alist))
+
+
+;; `cider-mode' is used instead of the typical `cider' package due to the main
+;; library being loaded only when is absolutely needed, which is too late for
+;; reconfiguration in many cases.
+(use-package! cider-mode
+  ;; NOTE: If `org-directory' doesn't exist, `cider-jack' in won't work
   :hook (clojure-mode-local-vars . cider-mode)
+  :hook (clojurec-mode-local-vars . cider-mode)
+  :hook (clojurescript-mode-local-vars . cider-mode)
+  :hook (clojure-ts-mode-local-vars . cider-mode)
+  :hook (clojure-ts-clojurescript-mode-local-vars . cider-mode)
+  :hook (clojure-ts-clojurec-mode-local-vars . cider-mode)
   :init
   (after! clojure-mode
-    (set-repl-handler! '(clojure-mode clojurec-mode) #'+clojure/open-repl :persist t)
-    (set-repl-handler! 'clojurescript-mode #'+clojure/open-cljs-repl :persist t)
-    (set-eval-handler! '(clojure-mode clojurescript-mode clojurec-mode) #'cider-eval-region))
+    (set-repl-handler! '(clojure-mode clojurec-mode)
+      #'+clojure/open-repl :persist t)
+    (set-repl-handler! 'clojurescript-mode
+      #'+clojure/open-cljs-repl :persist t)
+    (set-eval-handler! '(clojure-mode clojurescript-mode clojurec-mode)
+      #'cider-eval-region))
 
-  ;; HACK Fix radian-software/radian#446: CIDER tries to calculate the frame's
+  (after! clojure-ts-mode
+    (set-repl-handler! '(clojure-ts-mode clojurec-ts-mode)
+      #'+clojure/open-repl :persist t)
+    (set-repl-handler! 'clojure-ts-clojurescript-mode
+      #'+clojure/open-cljs-repl :persist t)
+    (set-eval-handler! '(clojure-ts-mode
+                         clojure-ts-clojurescript-mode
+                         clojure-ts-clojurec-mode)
+      #'cider-eval-region))
+
+  ;; HACK: Fix radian-software/radian#446: CIDER tries to calculate the frame's
   ;;   background too early; sometimes before the initial frame has been
   ;;   initialized, causing errors.
   (defvar cider-docview-code-background-color nil)
@@ -66,20 +128,21 @@
       ("^\\*cider-repl" :quit nil :ttl nil)
       ("^\\*cider-repl-history" :vslot 2 :ttl nil)))
 
-  (setq nrepl-hide-special-buffers t
+  (setq cider-auto-mode nil
+        nrepl-hide-special-buffers t
         nrepl-log-messages nil
         cider-font-lock-dynamically '(macro core function var deprecated)
         cider-overlays-use-font-lock t
+        cider-print-options '(("length" 100))
         cider-prompt-for-symbol nil
         cider-repl-history-display-duplicates nil
         cider-repl-history-display-style 'one-line
-        cider-repl-history-file (concat doom-cache-dir "cider-repl-history")
+        cider-repl-history-file (file-name-concat doom-profile-state-dir "cider-repl-history")
         cider-repl-history-highlight-current-entry t
         cider-repl-history-quit-action 'delete-and-restore
         cider-repl-history-highlight-inserted-item t
         cider-repl-history-size 1000
         cider-repl-result-prefix ";; => "
-        cider-repl-print-length 100
         cider-repl-use-clojure-font-lock t
         cider-repl-use-pretty-printing t
         cider-repl-wrap-history nil
@@ -112,13 +175,35 @@
            (with-current-buffer nrepl-server-buffer
              (buffer-string)))))))
 
-  ;; When in cider-debug-mode, override evil keys to not interfere with debug keys
   (after! evil
-    (add-hook! cider--debug-mode
-      (defun +clojure--cider-setup-debug ()
-        "Setup cider debug to override evil keys cleanly"
-        (evil-make-overriding-map cider--debug-mode-map 'normal)
-        (evil-normalize-keymaps))))
+    (if (modulep! :editor evil +everywhere)
+        ;; Match evil-collection keybindings to debugging overlay
+        (after! cider-debug
+          (mapc
+           (lambda (replacement)
+             (let* ((from (car replacement))
+                    (to (cadr replacement))
+                    (item (assoc from cider-debug-prompt-commands)))
+               (when item
+                 ;; Position matters, hence the update-in-place
+                 (setf (car item) (car to))
+                 (setf (cdr item) (cdr to)))))
+           '((?h (?H "here" "Here"))
+             (?i (?I "in" "In"))
+             (?j (?J "inject" "inJect"))
+             (?l (?L "locals" "Locals"))))
+
+          ;; Prevent evil-snipe from overriding evil-collection
+          (add-hook! 'cider--debug-mode-hook
+                     #'turn-off-evil-snipe-mode
+                     #'turn-off-evil-snipe-override-mode))
+
+      ;; When in cider-debug-mode, override evil keys to not interfere with debug keys
+      (add-hook! 'cider--debug-mode-hook
+        (defun +clojure--cider-setup-debug ()
+          "Setup cider debug to override evil keys cleanly"
+          (evil-make-overriding-map cider--debug-mode-map 'normal)
+          (evil-normalize-keymaps)))))
 
   (when (modulep! :ui modeline +light)
     (defvar-local cider-modeline-icon nil)
@@ -127,7 +212,7 @@
       "Update repl icon on modeline with cider information."
       (setq cider-modeline-icon (concat
                                  " "
-                                 (+modeline-format-icon 'faicon "terminal" "" face label -0.0575)
+                                 (+modeline-format-icon 'faicon "nf-fa-terminal" "" face label -0.0575)
                                  " "))
       (add-to-list 'global-mode-string
                    '(t (:eval cider-modeline-icon))
@@ -143,17 +228,17 @@
                (label (if connected "Cider connected" "Cider disconnected")))
           (+clojure--cider-set-modeline face label))))
 
-    (add-hook! '(cider-before-eval-hook)
+    (add-hook! 'cider-before-eval-hook
       (defun +clojure--cider-before-eval-hook-update-modeline ()
         "Update modeline with cider state before eval."
         (+clojure--cider-set-modeline 'warning "Cider evaluating")))
 
-    (add-hook! '(cider-after-eval-done-hook)
+    (add-hook! 'cider-after-eval-done-hook
       (defun +clojure--cider-after-eval-done-hook-update-modeline ()
         "Update modeline with cider state after eval."
         (+clojure--cider-set-modeline 'success "Cider syncronized")))
 
-    (add-hook! '(cider-file-loaded-hook)
+    (add-hook! 'cider-file-loaded-hook
       (defun +clojure--cider-file-loaded-update-modeline ()
         "Update modeline with cider file loaded state."
         (+clojure--cider-set-modeline 'success "Cider syncronized"))))
@@ -168,15 +253,13 @@
   (setq cider-repl-display-help-banner nil)
 
   (map! (:localleader
-          (:map (clojure-mode-map clojurescript-mode-map clojurec-mode-map)
+          (:map cider-mode-map
             "'"  #'cider-jack-in-clj
             "\"" #'cider-jack-in-cljs
             "c"  #'cider-connect-clj
             "C"  #'cider-connect-cljs
             "m"  #'cider-macroexpand-1
             "M"  #'cider-macroexpand-all
-            "j"  #'jet
-            "f"  #'neil-find-clojure-package
             (:prefix ("d" . "debug")
              "d" #'cider-debug-defun-at-point)
             (:prefix ("e" . "eval")
@@ -252,30 +335,27 @@
 
 
 (use-package! clj-refactor
-  :config
-  (when (or (not (modulep! +lsp))
+  :when (or (modulep! -lsp)
             +clojure-load-clj-refactor-with-lsp)
-    (add-hook 'clojure-mode-hook #'clj-refactor-mode)
-    (set-lookup-handlers! 'clj-refactor-mode
-      :references #'cljr-find-usages)
-    (map! :map clojure-mode-map
-          :localleader
-          :desc "refactor" "R" #'hydra-cljr-help-menu/body)))
+  :hook (clojure-mode . clj-refactor-mode)
+  :hook (clojure-ts-mode . clj-refactor-mode)
+  :config
+  (set-lookup-handlers! 'clj-refactor-mode
+    :references #'cljr-find-usages)
+  (map! :map cider-mode-map
+        :localleader
+        :desc "refactor" "R" #'hydra-cljr-help-menu/body))
 
 
 ;; clojure-lsp already uses clj-kondo under the hood
 (use-package! flycheck-clj-kondo
-  :when (and (modulep! :checkers syntax)
-             (not (modulep! +lsp)))
+  :when (modulep! -lsp)
+  :when (modulep! :checkers syntax -flymake)
   :after flycheck)
 
 
 (use-package! neil
-  :commands (neil-find-clojure-package)
+  :defer t
   :config
   (setq neil-prompt-for-version-p nil
         neil-inject-dep-to-project-p t))
-
-
-(use-package! jet
-  :commands (jet))

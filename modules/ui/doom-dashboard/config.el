@@ -46,33 +46,32 @@ Possible values:
   nil            `default-directory' will never change")
 
 (defvar +doom-dashboard-menu-sections
-  '(("Reload last session"
-     :icon (all-the-icons-octicon "history" :face 'doom-dashboard-menu-title)
+  '(("Recently opened files"
+     :icon (nerd-icons-faicon "nf-fa-file_text" :face 'doom-dashboard-menu-title)
+     :action recentf-open-files)
+    ("Reload last session"
+     :icon (nerd-icons-octicon "nf-oct-history" :face 'doom-dashboard-menu-title)
      :when (cond ((modulep! :ui workspaces)
                   (file-exists-p (expand-file-name persp-auto-save-fname persp-save-dir)))
                  ((require 'desktop nil t)
                   (file-exists-p (desktop-full-file-name))))
-     :face (:inherit (doom-dashboard-menu-title bold))
      :action doom/quickload-session)
     ("Open org-agenda"
-     :icon (all-the-icons-octicon "calendar" :face 'doom-dashboard-menu-title)
+     :icon (nerd-icons-octicon "nf-oct-calendar" :face 'doom-dashboard-menu-title)
      :when (fboundp 'org-agenda)
      :action org-agenda)
-    ("Recently opened files"
-     :icon (all-the-icons-octicon "file-text" :face 'doom-dashboard-menu-title)
-     :action recentf-open-files)
     ("Open project"
-     :icon (all-the-icons-octicon "briefcase" :face 'doom-dashboard-menu-title)
+     :icon (nerd-icons-octicon "nf-oct-briefcase" :face 'doom-dashboard-menu-title)
      :action projectile-switch-project)
     ("Jump to bookmark"
-     :icon (all-the-icons-octicon "bookmark" :face 'doom-dashboard-menu-title)
+     :icon (nerd-icons-octicon "nf-oct-bookmark" :face 'doom-dashboard-menu-title)
      :action bookmark-jump)
     ("Open private configuration"
-     :icon (all-the-icons-octicon "tools" :face 'doom-dashboard-menu-title)
+     :icon (nerd-icons-octicon "nf-oct-tools" :face 'doom-dashboard-menu-title)
      :when (file-directory-p doom-user-dir)
      :action doom/open-private-config)
     ("Open documentation"
-     :icon (all-the-icons-octicon "book" :face 'doom-dashboard-menu-title)
+     :icon (nerd-icons-octicon "nf-oct-book" :face 'doom-dashboard-menu-title)
      :action doom/help))
   "An alist of menu buttons used by `doom-dashboard-widget-shortmenu'. Each
 element is a cons cell (LABEL . PLIST). LABEL is a string to display after the
@@ -97,9 +96,6 @@ PLIST can have the following properties:
 (defvar +doom-dashboard--old-fringe-indicator fringe-indicator-alist)
 (defvar +doom-dashboard--pwd-alist ())
 (defvar +doom-dashboard--reload-timer nil)
-
-(defvar all-the-icons-scale-factor)
-(defvar all-the-icons-default-adjust)
 
 
 ;;
@@ -128,8 +124,8 @@ PLIST can have the following properties:
     ;; `persp-mode' integration: update `default-directory' when switching perspectives
     (add-hook 'persp-created-functions #'+doom-dashboard--persp-record-project-h)
     (add-hook 'persp-activated-functions #'+doom-dashboard--persp-detect-project-h)
-    ;; HACK Fix #2219 where, in GUI daemon frames, the dashboard loses center
-    ;;      alignment after switching (or killing) workspaces.
+    ;; Fix #2219 where, in GUI daemon frames, the dashboard loses center
+    ;; alignment after switching (or killing) workspaces.
     (when (daemonp)
       (add-hook 'persp-activated-functions #'+doom-dashboard-reload-maybe-h))
     (add-hook 'persp-before-switch-functions #'+doom-dashboard--persp-record-project-h)))
@@ -151,7 +147,7 @@ PLIST can have the following properties:
   "Face used for the footer on the dashboard"
   :group 'doom-dashboard)
 
-(defface doom-dashboard-footer-icon '((t (:inherit all-the-icons-green)))
+(defface doom-dashboard-footer-icon '((t (:inherit nerd-icons-green)))
   "Face used for the icon of the footer on the dashboard"
   :group 'doom-dashboard)
 
@@ -187,14 +183,17 @@ PLIST can have the following properties:
   (setq-local auto-hscroll-mode nil)
   ;; Line numbers are ugly with large margins
   (setq-local display-line-numbers-type nil)
-  (cl-loop for (car . _cdr) in fringe-indicator-alist
-           collect (cons car nil) into alist
-           finally do (setq-local fringe-indicator-alist alist))
+  ;; Ensure the ever-changing margins don't screw with the mode-line's
+  ;; right-alignment (see #8114).
+  (setq-local mode-line-right-align-edge 'right-margin)
   ;; Ensure point is always on a button
   (add-hook 'post-command-hook #'+doom-dashboard-reposition-point-h nil 'local)
   ;; hl-line produces an ugly cut-off line highlight in the dashboard, so don't
   ;; activate it there (by pretending it's already active).
-  (setq-local hl-line-mode t))
+  (setq-local hl-line-mode t)
+  ;; Local variables are never important in the dashboard, and may cause repeat
+  ;; prompts about unsafe/risky variables.
+  (setq-local enable-local-variables nil))
 
 (define-key! +doom-dashboard-mode-map
   [left-margin mouse-1]   #'ignore
@@ -274,7 +273,7 @@ whose dimensions may not be fully initialized by the time this is run."
   (let (buffer-list-update-hook
         window-configuration-change-hook
         window-size-change-functions)
-    (when-let (windows (get-buffer-window-list (doom-fallback-buffer) nil t))
+    (when-let* ((windows (get-buffer-window-list (doom-fallback-buffer) nil t)))
       (dolist (win windows)
         (set-window-start win 0)
         (set-window-fringes win 0 0)
@@ -301,7 +300,7 @@ This and `+doom-dashboard--persp-record-project-h' provides `persp-mode'
 integration with the Doom dashboard. It ensures that the dashboard is always in
 the correct project (which may be different across perspective)."
   (when (bound-and-true-p persp-mode)
-    (when-let (pwd (persp-parameter 'last-project-root))
+    (when-let* ((pwd (persp-parameter 'last-project-root)))
       (+doom-dashboard-update-pwd-h pwd))))
 
 (defun +doom-dashboard--persp-record-project-h (&optional persp &rest _)
@@ -456,60 +455,58 @@ What it is set to is controlled by `+doom-dashboard-pwd-policy'."
      "\n")))
 
 (defun doom-dashboard-widget-shortmenu ()
-  (let ((all-the-icons-scale-factor 1.45)
-        (all-the-icons-default-adjust -0.02))
-    (insert "\n")
-    (dolist (section +doom-dashboard-menu-sections)
-      (cl-destructuring-bind (label &key icon action when face key) section
-        (when (and (fboundp action)
-                   (or (null when)
-                       (eval when t)))
-          (insert
-           (+doom-dashboard--center
-            (- +doom-dashboard--width 1)
-            (let ((icon (if (stringp icon) icon (eval icon t))))
-              (format (format "%s%%s%%-10s" (if icon "%3s\t" "%3s"))
-                      (or icon "")
-                      (with-temp-buffer
-                        (insert-text-button
-                         label
-                         'action
-                         `(lambda (_)
-                            (call-interactively (or (command-remapping #',action)
-                                                    #',action)))
-                         'face (or face 'doom-dashboard-menu-title)
-                         'follow-link t
-                         'help-echo
-                         (format "%s (%s)" label
-                                 (propertize (symbol-name action) 'face 'doom-dashboard-menu-desc)))
-                        (format "%-37s" (buffer-string)))
-                      ;; Lookup command keys dynamically
-                      (propertize
-                       (or key
-                           (when-let*
-                               ((keymaps
-                                 (delq
-                                  nil (list (when (bound-and-true-p evil-local-mode)
-                                              (evil-get-auxiliary-keymap +doom-dashboard-mode-map 'normal))
-                                            +doom-dashboard-mode-map)))
-                                (key
-                                 (or (when keymaps
-                                       (where-is-internal action keymaps t))
-                                     (where-is-internal action nil t))))
-                             (with-temp-buffer
-                               (save-excursion (insert (key-description key)))
-                               (while (re-search-forward "<\\([^>]+\\)>" nil t)
-                                 (let ((str (match-string 1)))
-                                   (replace-match
-                                    (upcase (if (< (length str) 3)
-                                                str
-                                              (substring str 0 3))))))
-                               (buffer-string)))
-                           "")
-                       'face 'doom-dashboard-menu-desc))))
-           (if (display-graphic-p)
-               "\n\n"
-             "\n")))))))
+  (insert "\n")
+  (dolist (section +doom-dashboard-menu-sections)
+    (cl-destructuring-bind (label &key icon action when face key) section
+      (when (and (fboundp action)
+                 (or (null when)
+                     (eval when t)))
+        (insert
+         (+doom-dashboard--center
+          (- +doom-dashboard--width 1)
+          (let ((icon (if (stringp icon) icon (eval icon t))))
+            (format (format "%s%%s%%-10s" (if icon "%3s\t" "%3s"))
+                    (or icon "")
+                    (with-temp-buffer
+                      (insert-text-button
+                       label
+                       'action
+                       `(lambda (_)
+                          (call-interactively (or (command-remapping #',action)
+                                                  #',action)))
+                       'face (or face 'doom-dashboard-menu-title)
+                       'follow-link t
+                       'help-echo
+                       (format "%s (%s)" label
+                               (propertize (symbol-name action) 'face 'doom-dashboard-menu-desc)))
+                      (format "%-37s" (buffer-string)))
+                    ;; Lookup command keys dynamically
+                    (propertize
+                     (or key
+                         (when-let*
+                             ((keymaps
+                               (delq
+                                nil (list (when (bound-and-true-p evil-local-mode)
+                                            (evil-get-auxiliary-keymap +doom-dashboard-mode-map 'normal))
+                                          +doom-dashboard-mode-map)))
+                              (key
+                               (or (when keymaps
+                                     (where-is-internal action keymaps t))
+                                   (where-is-internal action nil t))))
+                           (with-temp-buffer
+                             (save-excursion (insert (key-description key)))
+                             (while (re-search-forward "<\\([^>]+\\)>" nil t)
+                               (let ((str (match-string 1)))
+                                 (replace-match
+                                  (upcase (if (< (length str) 3)
+                                              str
+                                            (substring str 0 3))))))
+                             (buffer-string)))
+                         "")
+                     'face 'doom-dashboard-menu-desc))))
+         (if (display-graphic-p)
+             "\n\n"
+           "\n"))))))
 
 (defun doom-dashboard-widget-footer ()
   (insert
@@ -517,9 +514,9 @@ What it is set to is controlled by `+doom-dashboard-pwd-policy'."
    (+doom-dashboard--center
     (- +doom-dashboard--width 2)
     (with-temp-buffer
-      (insert-text-button (or (all-the-icons-octicon "octoface" :face 'doom-dashboard-footer-icon :height 1.3 :v-adjust -0.15)
+      (insert-text-button (or (nerd-icons-codicon "nf-cod-octoface" :face 'doom-dashboard-footer-icon :height 1.3 :v-adjust -0.15)
                               (propertize "github" 'face 'doom-dashboard-footer))
-                          'action (lambda (_) (browse-url "https://github.com/hlissner/doom-emacs"))
+                          'action (lambda (_) (browse-url "https://github.com/doomemacs/doomemacs"))
                           'follow-link t
                           'help-echo "Open Doom Emacs github page")
       (buffer-string)))

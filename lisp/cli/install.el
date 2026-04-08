@@ -2,7 +2,7 @@
 ;;; Commentary:
 ;;; Code:
 
-(load! "packages")
+(doom-require 'doom-lib 'packages)
 
 
 ;;
@@ -14,12 +14,12 @@
 ;;
 ;;; Commands
 
-(defcli! ((install i))
-    (&flags
+(defcli! install
+    ((aot?     ("--aot") "Enable ahead-of-time native-compilation (if available)")
+     &flags
      (config?  ("--config" :yes)  "Create `$DOOMDIR' or dummy files therein?")
-     (envfile? ("--env" :yes)     "(Re)generate an envvars file? (see `$ doom help env`)")
+     (envfile? ("--env")          "(Re)generate an envvars file? (see `$ doom help env`)")
      (install? ("--install" :yes) "Auto-install packages?")
-     (fonts?   ("--fonts" :yes)   "Install (or prompt to install) all-the-icons fonts?")
      (hooks?   ("--hooks" :yes)   "Deploy Doom's git hooks to itself?")
      &context context)
   "Installs and sets up Doom Emacs for the first time.
@@ -27,12 +27,11 @@
 This command does the following:
 
   1. Creates `$DOOMDIR' at ~/.config/doom (if it or ~/.doom.d doesn't exist),
-  2. Copies ~/.config/emacs/templates/init.example.el to `$DOOMDIR'/init.el (if
+  2. Copies ~/.config/emacs/static/init.example.el to `$DOOMDIR'/init.el (if
      it doesn't exist),
   3. Creates dummy files for `$DOOMDIR'/{config,packages}.el,
   4. Prompts you to generate an envvar file (same as `$ doom env`),
   5. Installs any dependencies of enabled modules (specified by `$DOOMDIR'/init.el),
-  6. And prompts to install all-the-icons' fonts
 
 This command is idempotent and safe to reuse.
 
@@ -55,22 +54,21 @@ Change `$DOOMDIR' with the `--doomdir' option, e.g.
             (setq doom-user-dir (expand-file-name "doom/" xdg-config-dir)))))
 
       (if (file-directory-p doom-user-dir)
-          (print! (item "Skipping %s (already exists)") (relpath doom-user-dir))
+          (print! (item "Skipping %s (already exists)") (path doom-user-dir))
         (make-directory doom-user-dir 'parents)
-        (print! (success "Created %s") (relpath doom-user-dir)))
+        (print! (success "Created %s") (path doom-user-dir)))
 
       ;; Create init.el, config.el & packages.el
       (print-group!
         (mapc (lambda (file)
                 (cl-destructuring-bind (filename . template) file
-                  (if (file-exists-p! filename doom-user-dir)
-                      (print! (item "Skipping %s (already exists)")
-                              (path filename))
-                    (print! (item "Creating %s%s") (relpath doom-user-dir) filename)
-                    (with-temp-file (doom-path doom-user-dir filename)
-                      (insert-file-contents template))
+                  (setq filename (doom-path doom-user-dir filename))
+                  (if (file-exists-p filename)
+                      (print! (item "Skipping %s (already exists)...") (path filename))
+                    (print! (item "Creating %s...") (path filename))
+                    (with-temp-file filename (insert-file-contents template))
                     (print! (success "Done!")))))
-              (let ((template-dir (doom-path doom-emacs-dir "templates")))
+              (let ((template-dir (doom-path doom-emacs-dir "static/")))
                 `((,doom-module-init-file
                    . ,(file-name-with-extension (doom-path template-dir doom-module-init-file)
                                                 ".example.el"))
@@ -81,57 +79,50 @@ Change `$DOOMDIR' with the `--doomdir' option, e.g.
                    . ,(file-name-with-extension (doom-path template-dir doom-module-packages-file)
                                                 ".example.el")))))))
 
-    ;; In case no init.el was present the first time it was loaded.
+    ;; In case no init.el (or cli.el) was present before the config was deployed
     (doom-load (doom-path doom-user-dir doom-module-init-file) t)
+    (doom-load (doom-path doom-user-dir "cli.el") t)
 
     ;; Ask if user would like an envvar file generated
     (if (eq envfile? :no)
         (print! (warn "Not generating envvars file, as requested"))
-      (if (file-exists-p doom-env-file)
-          (print! (item "Envvar file already exists, skipping"))
-        (when (or yes? (y-or-n-p "Generate an envvar file? (see `doom help env` for details)"))
-          (call! '(env)))))
+      (when (or yes?
+                (eq envfile? :yes)
+                (y-or-n-p "Generate an envvar file? (see `doom help env` for details)"))
+        (call! '(env))))
+
+    (when aot?
+      (after! straight
+        (setq straight--native-comp-available t)))
 
     ;; Install Doom packages
     (if (eq install? :no)
         (print! (warn "Not installing plugins, as requested"))
-      (print! "Installing plugins")
-      (doom-packages-install))
+      (print! (start "Installing plugins"))
+      (print-group! (doom-packages-ensure)))
 
-    (print! "Regenerating autoloads files")
-    (doom-profile-generate)
+    (when (doom-profiles-bootloadable-p)
+      (print! (start "Initializing profile bootstrapper..."))
+      (call! '(profile sync "--all" "--reload")))
+
+    (print! (start "Synchronizing default profile..."))
+    (print-group! (doom-profile-generate))
 
     (if (eq hooks? :no)
         (print! (warn "Not deploying commit-msg and pre-push git hooks, as requested"))
-      (print! "Deploying commit-msg and pre-push git hooks")
+      (print! (start "Deploying commit-msg and pre-push git hooks"))
       (print-group!
-       (condition-case e
-           (call! `(ci deploy-hooks ,@(if yes? '("--force"))))
-         ('user-error
-          (print! (warn "%s") (error-message-string e))))))
-
-    (cond ((eq fonts? :no))
-          (IS-WINDOWS
-           (print! (warn "Doom cannot install all-the-icons' fonts on Windows!\n"))
-           (print-group!
-            (print!
-             (concat "You'll have to do so manually:\n\n"
-                     "  1. Launch Doom Emacs\n"
-                     "  2. Execute 'M-x all-the-icons-install-fonts' to download the fonts\n"
-                     "  3. Open the download location in windows explorer\n"
-                     "  4. Open each font file to install them"))))
-          ((or yes? (y-or-n-p "Download and install all-the-icon's fonts?"))
-           (require 'all-the-icons)
-           (let ((window-system (cond (IS-MAC 'ns)
-                                      (IS-LINUX 'x))))
-             (all-the-icons-install-fonts 'yes))))
+        (condition-case e
+            (call! `(ci deploy-hooks ,@(if yes? '("--force"))))
+          ('user-error
+           (print! (warn "%s") (error-message-string e))))))
 
     (when (file-exists-p "~/.emacs")
       (print! (warn "A ~/.emacs file was detected. This conflicts with Doom and should be deleted!")))
 
-    (print! (success "\nFinished! Doom is ready to go!\n"))
+    (print! (success "Finished! Doom is ready to go!\n"))
     (with-temp-buffer
-      (insert-file-contents (doom-path doom-emacs-dir "templates/QUICKSTART_INTRO"))
+      (insert-file-contents (doom-path doom-emacs-dir "static/QUICKSTART_INTRO"))
       (print! "%s" (buffer-string)))))
 
 (provide 'doom-cli-install)

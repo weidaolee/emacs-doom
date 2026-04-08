@@ -6,7 +6,7 @@
 * Description :unfold:
 This module adds support for various web languages, including HTML5, CSS,
 SASS/SCSS, Pug/Jade/Slim, and HAML, as well as various web frameworks, like
-ReactJS, Wordpress, Jekyll, Phaser, AngularJS, Djano, and more.
+ReactJS, Wordpress, Jekyll, Phaser, AngularJS, Django, and more.
 
 ** Maintainers
 - @hlissner
@@ -38,8 +38,11 @@ ReactJS, Wordpress, Jekyll, Phaser, AngularJS, Djano, and more.
 
 ** TODO Hacks
 #+begin_quote
- 🔨 This module's hacks haven't been documented yet. [[doom-contrib-module:][Document them?]]
+ 󱌣 This module's hacks haven't been documented yet. [[doom-contrib-module:][Document them?]]
 #+end_quote
+
+- Fixes ~//~ line commenting in JSX and Javascript files (if you aren't using
+  :lang javascript for some reason)
 
 ** TODO Changelog
 # This section will be machine generated. Don't edit it by hand.
@@ -48,18 +51,17 @@ ReactJS, Wordpress, Jekyll, Phaser, AngularJS, Djano, and more.
 * TODO Installation
 [[id:01cffea4-3329-45e2-a892-95a384ab2338][Enable this module in your ~doom!~ block.]]
 
-#+begin_quote
- 🔨 /No installation steps have been documented./ [[doom-contrib-module:][Document them?]]
-#+end_quote
+** Formatter
+Formatting is handled using the [[doom-module::editor format]] module via [[https://prettier.io/docs/en/install.html][prettier]].
 
 * TODO Usage
 #+begin_quote
-🔨 This module has no usage documentation yet. [[doom-contrib-module:][Write some?]]
+ 󱌣 This module has no usage documentation yet. [[doom-contrib-module:][Write some?]]
 #+end_quote
 
 * TODO Configuration
 #+begin_quote
-🔨 This module has no configuration documentation yet. [[doom-contrib-module:][Write some?]]
+ 󱌣 This module has no configuration documentation yet. [[doom-contrib-module:][Write some?]]
 #+end_quote
 
 * Troubleshooting
@@ -70,5 +72,5 @@ ReactJS, Wordpress, Jekyll, Phaser, AngularJS, Djano, and more.
 
 * TODO Appendix
 #+begin_quote
-🔨 This module has no appendix yet. [[doom-contrib-module:][Write one?]]
+ 󱌣 This module has no appendix yet. [[doom-contrib-module:][Write one?]]
 #+end_quote

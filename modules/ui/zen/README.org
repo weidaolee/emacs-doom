@@ -6,15 +6,15 @@
 * Description :unfold:
 This module provides two minor modes that make Emacs into a more comfortable
 writing or coding environment. Folks familiar with "distraction-free" or "zen"
-modes from other editors -- or [[doom-package:olivetti]], [[doom-package:sublimity]], and [[doom-package:tabula-rasa]] (Emacs
-plugins) -- will feel right at home.
+modes from other editors — or [[doom-package:olivetti]], [[doom-package:sublimity]], and
+[[doom-package:tabula-rasa]] (Emacs plugins) — will feel right at home.
 
 These modes are:
 - ~mixed-pitch-mode~ ::
   Which renders (most) text in a variable pitch font (see
-  ~doom-variable-pitch-font~). Unlike ~variable-pitch-mode~, this will not
-  affect segments of text that are intended to remain in a fixed pitch font,
-  such as code blocks or ASCII tables.
+  ~doom-variable-pitch-font~). Unlike ~variable-pitch-mode~, this will not affect
+  segments of text that are intended to remain in a fixed pitch font, such as
+  code blocks or ASCII tables.
 - ~writeroom-mode~ ::
   Our all-in-one "zen" mode that will:
   1. Center the current buffer.
@@ -30,18 +30,24 @@ These modes are:
 [[doom-contrib-maintainer:][Become a maintainer?]]
 
 ** Module flags
-/This module has no flags./
+- +focus ::
+  Dims surrounding code or text around the block or sentence you're currently
+  working on. Includes LSP support if [[doom-module::tools lsp]] is enabled (without
+  Eglot).
 
 ** Packages
 - [[doom-package:mixed-pitch]]
 - [[doom-package:writeroom-mode]]
+- if [[doom-module:+focus]]
+  - [[doom-package:focus]]
+  - [[doom-package:lsp-focus]] if [[doom-module::tools lsp]]
 
 ** Hacks
 + Doom has disabled all of writeroom-mode's "global" effects
-  (~writeroom-global-effects~ and ~writeroom-maximize-window~ are set to ~nil~),
-  and encapsulated them into the ~+zen/toggle-fullscreen~ command, whereas
-  ~+zen/toggle~ will only operate on the current buffer. This way, the user may
-  choose how far-reaching they want its effect to be.
+  (~writeroom-global-effects~ and ~writeroom-maximize-window~ are set to ~nil~), and
+  encapsulated them into the ~+zen/toggle-fullscreen~ command, whereas ~+zen/toggle~
+  will only operate on the current buffer. This way, the user may choose how
+  far-reaching they want its effect to be.
 + ~text-scale~ has been advised to adjust ~visual-fill-column~'s margins, so its
   text won't "squeeze" as you scale it up (or "spill" when scaled down).
 
@@ -66,7 +72,7 @@ Invoke either command again to undo the change.
 
 * TODO Configuration
 #+begin_quote
-🔨 This module has no configuration documentation yet. [[doom-contrib-module:][Write some?]]
+ 󱌣 This module has no configuration documentation yet. [[doom-contrib-module:][Write some?]]
 #+end_quote
 
 * Troubleshooting
@@ -77,5 +83,5 @@ Invoke either command again to undo the change.
 
 * TODO Appendix
 #+begin_quote
-🔨 This module has no appendix yet. [[doom-contrib-module:][Write one?]]
+ 󱌣 This module has no appendix yet. [[doom-contrib-module:][Write one?]]
 #+end_quote

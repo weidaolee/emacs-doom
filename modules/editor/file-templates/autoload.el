@@ -1,5 +1,9 @@
 ;;; editor/file-templates/autoload.el -*- lexical-binding: t; -*-
 
+(defvar yas-choose-tables-first)
+(defvar yas-choose-keys-first)
+
+
 (defun +file-templates--set (pred plist)
   (if (null (car-safe plist))
       (setq +file-templates-alist
@@ -15,9 +19,9 @@ PRED can either be a regexp string or a major mode symbol. PLIST may contain
 these properties:
 
   :when FUNCTION
-    Provides a secondary predicate. This function takes no arguments and is
-    executed from within the target buffer. If it returns nil, this rule will be
-    skipped over.
+    Provides a secondary predicate. This function takes the filename as an
+    argument and is executed from within the target buffer. If it returns nil,
+    this rule will be skipped over.
   :trigger STRING|FUNCTION
     If a string, this is the yasnippet trigger keyword used to trigger the
       target snippet.
@@ -81,7 +85,7 @@ evil is loaded and enabled)."
                    (and yas--active-field-overlay
                         (overlay-buffer yas--active-field-overlay)
                         (overlay-get yas--active-field-overlay 'yas--field)))
-          (evil-initialize-state 'insert))))))
+          (evil-change-state 'insert))))))
 
 ;;;###autoload
 (defun +file-templates-get-short-path ()
@@ -122,7 +126,7 @@ evil is loaded and enabled)."
                     for uuid = (yas--template-uuid tpl)
                     if (string-prefix-p "__license-" uuid)
                     collect (cons (string-remove-prefix "__license-" uuid) tpl)))))
-    (when-let (uuid (yas-choose-value (mapcar #'car templates)))
+    (when-let* ((uuid (yas-choose-value (mapcar #'car templates))))
       (yas-expand-snippet (cdr (assoc uuid templates))))))
 
 ;;;###autoload

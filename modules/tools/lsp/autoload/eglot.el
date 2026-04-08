@@ -2,20 +2,27 @@
 ;;;###if (modulep! +eglot)
 
 ;;;###autodef
-(defun set-eglot-client! (mode server-call)
-  "Add SERVER-CALL list as a possible lsp server for given major MODE.
+(defun set-eglot-client! (mode &rest alternatives)
+  "Set ALTERNATIVES as the given eglot lsp server for given major MODE.
 
-Example : (set-eglot-client! 'python-mode `(,(concat doom-data-dir \"lsp/mspyls/Microsoft.Python.LanguageServer\")))"
+MODE can be a list of major modes symbol or a single one.
+
+MODE and ALTERNATIVES take after MAJOR-MODE and CONTACT in
+`eglot-server-programs'. MODE can be one major mode symbol or a list thereof.
+ALTERNATIVES specifies how to connect to a server in those modes."
   (after! eglot
-    (add-to-list 'eglot-server-programs `(,mode . ,server-call))))
+    (add-to-list 'eglot-server-programs
+                 (cons mode (if (cdr alternatives)
+                                (eglot-alternatives alternatives)
+                              (car alternatives))))))
 
-;; HACK Eglot removed `eglot-help-at-point' in joaotavora/eglot@a044dec for a
-;;      more problematic approach of deferred to eldoc. Here, I've restored it.
-;;      Doom's lookup handlers try to open documentation in a separate window
-;;      (so they can be copied or kept open), but doing so with an eldoc buffer
-;;      is difficult because a) its contents are generated asynchronously,
-;;      making them tough to scrape, and b) their contents change frequently
-;;      (every time you move your cursor).
+;; HACK: Eglot removed `eglot-help-at-point' in joaotavora/eglot@a044dec for a
+;;   more problematic approach of deferred to eldoc. Here, I've restored it.
+;;   Doom's lookup handlers try to open documentation in a separate window (so
+;;   they can be copied or kept open), but doing so with an eldoc buffer is
+;;   difficult because a) its contents are generated asynchronously, making them
+;;   tough to scrape, and b) their contents change frequently (every time you
+;;   move your cursor).
 (defvar +eglot--help-buffer nil)
 ;;;###autoload
 (defun +eglot-lookup-documentation (_identifier)
