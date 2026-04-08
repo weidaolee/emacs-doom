@@ -42,4 +42,8 @@ dired marks) does not lose the source list before paste.")
  ;; cc = cut (mark for move), yy = yank (mark for copy), p/pp = paste
  :n "cc" #'+dirvish/cut
  :n "yy" #'+dirvish/yank
- :n "p"  #'+dirvish/paste)
+ :n "p"  #'+dirvish/paste
+ ;; z* = ranger-style toggles. Binding any z* makes `z' a prefix, which
+ ;; shadows Doom's single-key `z' -> `dirvish-history-jump'; rebind it on zj.
+ :n "zh" #'dired-omit-mode
+ :n "zj" #'dirvish-history-jump)
