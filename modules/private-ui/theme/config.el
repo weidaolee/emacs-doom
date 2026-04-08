@@ -2,8 +2,8 @@
 
 
 ;;;; Banner
-(setq org-directory "~/emacs/doomemacs/doom.d/org/")
-(setq +doom-dashboard-banner-dir "~/emacs/doomemacs/doom.d/banners/")
+(setq org-directory "~/emacs/doom/doom.d/org/")
+(setq +doom-dashboard-banner-dir "~/emacs/doom/doom.d/banners/")
 (setq +doom-dashboard-banner-file "./gnuemacs-300.png")
 
 ;;;; theme

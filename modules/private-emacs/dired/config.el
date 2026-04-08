@@ -1,12 +1,10 @@
 ;;; private-emacs/dired/config.el -*- lexical-binding: t; -*-
 
-(after! ranger
-  (load! "+map/ranger.el"))
+(after! dirvish
+  (load! "+map/dirvish.el"))
 
-(after! ranger
-  (defun ranger-to-dired(arg)
-    (interactive "^p")
-    (ranger-prev-file arg)))
+(after! dired-x
+  (setq dired-omit-files (concat dired-omit-files "\\|^\\..+")))
 
 (use-package! trashed
   :defer t
